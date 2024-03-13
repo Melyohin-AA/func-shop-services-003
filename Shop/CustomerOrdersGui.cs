@@ -1,0 +1,129 @@
+using Microsoft.AspNetCore.Mvc;
+
+namespace ShopServices.Shop;
+
+internal static class CustomerOrdersGui
+{
+	public static IActionResult Get()
+	{
+		return new ContentResult() {
+			Content = 
+@"<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+	<meta charset='UTF-8'>
+	<title>CustomerOrders - ShopServices</title>
+</head>
+
+<body>
+	<label>Данные по заказам покупателя</label>
+	<br/>
+	<button id='requestButton' onclick='onRequestButtonClick()'>Запросить</button>
+	<input id='emailInput' placeholder='E-mail адрес' autofocus onkeydown='if (event.keyCode == 13) onRequestButtonClick()'/>
+	<br/>
+	<hr/>
+	<font id='resultArea' size='4'></font>
+</body>
+
+<script>
+	var SUPPORTED_FORMAT_VERSION = 1;
+
+	function onRequestButtonClick() {
+		if (requestButton.disabled) return;
+		email = emailInput.value.trim();
+		if (email.length == 0) {
+			alert('Поле `E-mail адрес` является обязательным');
+			return;
+		}
+		makeRequest(email);
+	}
+
+	function makeRequest(email) {
+		requestButton.disabled = true;
+		clearResultArea();
+		query = formQuery(email);
+		url = `/api/shop/customer-orders?${query}`;
+		fetch(url).then((response) => {
+			if (response.status !== 200) {
+				console.log(`Failed to fetch, code '${response.status}'`);
+				showRequestFailure();
+				return;
+			}
+			console.log('Fetched successfully');
+			response.json().then((result) => {
+				console.log(result);
+				formatVersion = result['formatVersion'];
+				if (formatVersion != SUPPORTED_FORMAT_VERSION) {
+					console.log(`Unexpected format version: expected '${SUPPORTED_FORMAT_VERSION}', actual is '${formatVersion}'`);
+					alert('Загруженная версия страницы больше не поддерживается. Страница будет обновлена при закрытии данного сообщения');
+					location.reload();
+					return;
+				}
+				updateResultArea(result);
+				requestButton.disabled = false;
+			}).catch((error) => {
+				console.log('Failed to parse response:', error);
+				showRequestFailure();
+			});
+		}).catch((error) => {
+			console.log('Failed to fetch:', error);
+			showRequestFailure();
+		});
+	}
+
+	function formQuery(email) {
+		params = {
+			email: email,
+		};
+		return new URLSearchParams(params).toString();
+	}
+
+	function clearResultArea() {
+		resultArea.innerHTML = null;
+	}
+
+	function updateResultArea(result) {
+		if (result.customersFound != 1) {
+			addImproperCustomerCountMessage(result.customersFound);
+			return;
+		}
+		addCustomerTitle(result.customer);
+		addCustomerOrderTable(result.customerOrders);
+	}
+
+	function addImproperCustomerCountMessage(customersFound) {
+		msg = `Найдено ${customersFound} пользователей с указанным E-mail адресом, требуется ровно 1!`;
+		improperCustomerCountMessageElem = document.createElement('p');
+		improperCustomerCountMessageElem.innerHTML = msg;
+		resultArea.appendChild(improperCustomerCountMessageElem);
+	}
+
+	function addCustomerTitle(customer) {
+		titleElem = document.createElement('div');
+		titleElem.innerHTML = `<font size='6' color='green'><b>${customer.email} | ${customer.name}</b></font>`;
+		resultArea.appendChild(titleElem);
+	}
+
+	function addCustomerOrderTable(customerOrders) {
+		tableElem = document.createElement('table');
+		tableElem.setAttribute('border', '1');
+		tableElem.insertRow(0).innerHTML = '<th>Код</th><th>Описание</th><th>Сумма, коп</th><th>Статус</th>';
+		for (let i = 0; i < customerOrders.length; i++) {
+			customerOrder = customerOrders[i];
+			row = tableElem.insertRow(-1);
+			['name', 'description', 'sum'].forEach((key) => row.insertCell().innerHTML = customerOrder[key]);
+			row.insertCell().innerHTML = customerOrder.state.name;
+		}
+		resultArea.appendChild(tableElem);
+	}
+
+	function showRequestFailure() {
+		alert('Операция не удалась');
+		requestButton.disabled = false;
+	}
+</script>
+
+</html>", ContentType = "text/html; charset=utf-8"};
+	}
+}
