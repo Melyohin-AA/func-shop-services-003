@@ -9,6 +9,52 @@
 			font-family: andale mono, monospace;
 		}
 
+		.select-neutral {}
+
+		.status-awaiting-assembly {
+			background-color: aliceblue;
+		}
+
+		.status-assembly-in-progress {
+			background-color: aquamarine;
+		}
+
+		.status-assembled {
+			background-color: greenyellow;
+		}
+
+		.status-packed {
+			background-color: lightgreen;
+		}
+
+		.status-sent {
+			background-color: gold;
+		}
+
+		.group-in-progress {
+			border-color: darkblue;
+		}
+
+		.group-red {
+			border-color: darkred;
+		}
+
+		.group-orders-from-available {
+			border-color: darkgreen;
+		}
+
+		.group-waiting {
+			border-color: darkcyan;
+		}
+
+		.group-long-order {
+			border-color: darkmagenta;
+		}
+
+		.group-completed {
+			border-color: darkgoldenrod;
+		}
+
 		.outer-table {
 			border-collapse: collapse;
 		}
@@ -71,8 +117,13 @@
 
 	class ShipmentTable {
 		constructor() {
+			this.selectClassesStatus = ["select-neutral", "status-awaiting-assembly", "status-assembly-in-progress", "status-assembled", "status-packed", "status-sent"];
+			this.selectClassesGroup = ["select-neutral", "group-in-progress", "group-red", "group-orders-from-available", "group-waiting", "group-long-order", "group-completed"];
+			this.oldSelectClasses = [];
 			this.commonInputs = [];
 			this.main = this.newOuterTable();
+			
+			let rowHeader = this.main.insertRow(-1);
 			let row0 = this.main.insertRow(-1);
 			let cell00 = row0.insertCell(-1);
 			let innerTable00 = this.newInnerTable(cell00);
@@ -110,7 +161,11 @@
 			this.shipmentId = this.newInput(cell0_10, 'N отправки', 'text');
 			this.shipmentId.disabled = true;
 			let cell1_10 = innerTable10.insertRow(-1).insertCell(-1);
-			this.state = this.newSelect(cell1_10, ['--Статус--', 'ОЖИДАЕТ СБОРКУ', 'НА СБОРКЕ', 'СОБРАН', 'УПАКОВАН', 'ОТПРАВЛЕН']);
+			this.state = this.newSelect(
+				cell1_10,
+				['--Статус--', 'ОЖИДАЕТ СБОРКУ', 'НА СБОРКЕ', 'СОБРАН', 'УПАКОВАН', 'ОТПРАВЛЕН'],
+				this.selectClassesStatus
+			);
 			this.commonInputs.push(this.state);
 			let cell11 = row1.insertCell(-1);
 			let innerTable11 = this.newInnerTable(cell11);
@@ -140,7 +195,11 @@
 			let cell15 = row1.insertCell(-1);
 			let innerTable15 = this.newInnerTable(cell15);
 			let cell0_15 = innerTable15.insertRow(-1).insertCell(-1);
-			this.group = this.newSelect(cell0_15, ['--Группа--', 'В РАБОТЕ', 'КРАСНАЯ', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО']);
+			this.group = this.newSelect(
+				cell0_15,
+				['--Группа--', 'В РАБОТЕ', 'КРАСНАЯ', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО'],
+				this.selectClassesGroup
+			);
 			this.commonInputs.push(this.group);
 			this.initActionRows();
 			this.moyskladDataTable = this.newOuterTable();
@@ -148,6 +207,8 @@
 			this.tableState = null;
 			this.unchanged = null;
 			this.lock = false;
+			this.main.onchange = () => this.recolorToMatchState();
+			this.recolorToMatchState();
 		}
 
 		initActionRows() {
@@ -210,12 +271,17 @@
 			return button;
 		}
 
-		newSelect(hostCell, options) {
+		newSelect(hostCell, options, option_classes) {
+			if (hostCell === null || options === null || option_classes === null) {
+				throw new Error("Parameters cannot be null");
+			}
+			if (options.length != option_classes.length) throw new Error("Invalid option_classes array length");
 			let select = document.createElement('select');
 			for (let i = 0; i < options.length; i++) {
 				let option = document.createElement('option');
 				option.setAttribute('value', i);
 				option.innerHTML = options[i];
+				if (option_classes[i] !== "") option.classList.add(option_classes[i]);
 				select.appendChild(option);
 			}
 			hostCell.appendChild(select);
@@ -422,6 +488,21 @@
 				console.log(`Failed to delete shipment '${shId}':`, error);
 				handler(false);
 			});
+		}
+
+		recolorToMatchState() {
+			let statusClass = this.selectClassesStatus[this.state.selectedIndex];
+			let groupClass = this.selectClassesGroup[this.group.selectedIndex];
+			console.log(this.main.classList);
+
+			for (let i = 0; i < this.oldSelectClasses.length; i++) {
+				let elm = this.oldSelectClasses[i];
+				this.main.classList.toggle(elm, false);
+			}
+			this.main.classList.toggle(statusClass, true);
+			this.main.classList.toggle(groupClass, true);
+			console.log(this.main.classList);
+			this.oldSelectClasses = [statusClass, groupClass];
 		}
 
 		static requestGetAll(handler) {
