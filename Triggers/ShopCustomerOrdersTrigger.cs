@@ -16,6 +16,6 @@ internal static class ShopCustomerOrdersTrigger
 		[HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "shop/customer-orders")] HttpRequest request,
 		ILogger logger)
 	{
-		return Task.FromResult(CustomerOrdersGui.Get());
+		return CustomerOrdersGui.Get();
 	}
 }
