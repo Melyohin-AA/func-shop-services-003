@@ -8,7 +8,7 @@ internal static class CustomerOrdersGui
 	{
 		return new ContentResult()
 		{
-			Content = ShopServices.IncludedFiles.ResourceAsSring("ShipmentsGui.html"),
+			Content = ShopServices.IncludedFiles.ResourceAsSring("CustomerOrdersGui.html"),
 			ContentType = "text/html; charset=utf-8"
 		};
 	}
