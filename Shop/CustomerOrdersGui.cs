@@ -6,9 +6,11 @@ internal static class CustomerOrdersGui
 {
 	public static IActionResult Get()
 	{
+		var content = ShopServices.IncludedFiles.ResourceAsSring("CustomerOrdersGui.html");
+		content.Wait();
 		return new ContentResult()
 		{
-			Content = ShopServices.IncludedFiles.ResourceAsSring("CustomerOrdersGui.html"),
+			Content = content.Result,
 			ContentType = "text/html; charset=utf-8"
 		};
 	}

@@ -7,9 +7,11 @@ internal static class ShipmentsGui
 {
 	public static IActionResult Get()
 	{
+		var content = ShopServices.IncludedFiles.ResourceAsSring("ShipmentsGui.html");
+		content.Wait();
 		return new ContentResult()
 		{
-			Content = ShopServices.IncludedFiles.ResourceAsSring("ShipmentsGui.html"),
+			Content = content.Result,
 			ContentType = "text/html; charset=utf-8"
 		};
 	}

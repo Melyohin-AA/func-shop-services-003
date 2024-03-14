@@ -6,18 +6,17 @@ namespace ShopServices;
 public static class IncludedFiles
 {
 	
-	public static string ResourceAsSring(string resourceName, System.Text.Encoding specifyEncoding = null)
+	public static async System.Threading.Tasks.Task<string> ResourceAsSring(
+		string resourceName,
+		System.Text.Encoding specifyEncoding = null)
 	{
 		
-		var asm = System.Reflection.Assembly.GetExecutingAssembly();
+		System.Reflection.Assembly asm = System.Reflection.Assembly.GetExecutingAssembly();
 		using (var stream = asm.GetManifestResourceStream($"func.IncludeFiles.{resourceName}"))
 		{
 			byte[] buf = new byte[stream.Length];
-			stream.Read(buf, 0, (int)stream.Length);
+			await stream.ReadAsync(buf, 0, (int)stream.Length);
 			return (specifyEncoding ?? System.Text.Encoding.UTF8).GetString(buf);
 		}
-
-
-		throw new System.NotImplementedException();
 	}
 }
