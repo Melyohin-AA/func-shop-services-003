@@ -16,6 +16,6 @@ internal static class ShopShipmentsTrigger
 		[HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "shop/shipments")] HttpRequest request,
 		ILogger logger)
 	{
-		return Task.FromResult(ShipmentsGui.Get());
+		return ShipmentsGui.Get();
 	}
 }

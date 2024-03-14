@@ -18,4 +18,12 @@
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
   </ItemGroup>
+  <!-- Embedded Resources -->
+	<ItemGroup>
+		<None Update="IncludeFiles/**" CopyToOutputDirectory="PreserveNewest" />
+		<Compile Remove="IncludeFiles/**" />
+		<None Include="IncludeFiles/**" />
+		<EmbeddedResource Include="IncludeFiles/**">
+    </EmbeddedResource>
+	</ItemGroup>
 </Project>
