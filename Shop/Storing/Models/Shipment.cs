@@ -29,6 +29,7 @@ internal class Shipment : ITableEntity
 	shippingCompany
 	comments
 	moyskladData
+	lastModTS
 	*/
 
 	public string Id { get; set; }
@@ -47,6 +48,7 @@ internal class Shipment : ITableEntity
 	public string ShippingCompany { get; set; }
 	public string Comments { get; set; }
 	public string MoyskladData { get; set; }
+	public long LastModTS { get; set; }
 
 	public static Shipment FromJson(JObject jobj)
 	{
@@ -93,6 +95,7 @@ internal class Shipment : ITableEntity
 			{ "shippingCompany", ShippingCompany },
 			{ "comments", (Comments != null) ? JArray.Parse(Comments) : null },
 			{ "moyskladData", (MoyskladData != null) ? JObject.Parse(MoyskladData) : null },
+			{ "lastModTS", LastModTS },
 		};
 	}
 
