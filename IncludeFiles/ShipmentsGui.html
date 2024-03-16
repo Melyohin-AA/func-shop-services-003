@@ -131,14 +131,10 @@
 	//taken from https://stackoverflow.com/questions/1349404/generate-random-string-characters-in-javascript
 	const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
 	const charactersLength = characters.length;
-	const charactersArray = [];
-	for (let i = 0; i < charactersLength; i++) {
-		charactersArray.push(characters.charAt(i));
-	}
 	function generateRandomAlphanumericString(length) {
 		let result = [];
 		for (let counter = 0; counter < length; counter++) {
-			result.push(charactersArray[(Math.floor(Math.random() * charactersLength))]);
+			result.push(characters.charAt(Math.floor(Math.random() * charactersLength)));
 		}
 		return result.join("");
 	}
