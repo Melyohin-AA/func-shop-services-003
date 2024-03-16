@@ -107,6 +107,45 @@
 </body>
 
 <script>
+	//taken from https://stackoverflow.com/questions/51312980/how-to-get-and-set-cookies-in-javascript
+	function setCookie(name, value, days) {
+		let expires = "";
+		if (days !== null) {
+			let date = new Date();
+			date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+			expires = "; expires=" + date.toUTCString();
+		}
+		document.cookie = name + "=" + (value || "") + expires + "; path=/";
+	}
+	//taken from https://stackoverflow.com/questions/51312980/how-to-get-and-set-cookies-in-javascript
+	function getCookie(name) {
+		let nameEQ = name + "=";
+		let ca = document.cookie.split(';');
+		for (let i = 0; i < ca.length; i++) {
+			let c = ca[i];
+			while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+			if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+		}
+		return null;
+	}
+	//taken from https://stackoverflow.com/questions/1349404/generate-random-string-characters-in-javascript
+	const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
+	const charactersLength = characters.length;
+	function generateRandomAlphanumericString(length) {
+		let result = [];
+		for (let counter = 0; counter < length; counter++) {
+			result.push(characters.charAt(Math.floor(Math.random() * charactersLength)));
+		}
+		return result.join("");
+	}
+
+	const DEVICE_ID_KEY = "ss-device-id";
+	const RANDOM_STRING_LENGTH = 64;
+	let deviceIdCookie = getCookie(DEVICE_ID_KEY);
+	if (deviceIdCookie === null) {
+		deviceIdCookie = generateRandomAlphanumericString(RANDOM_STRING_LENGTH);
+		setCookie(DEVICE_ID_KEY, deviceIdCookie, 36500);
+	}
 	const SHIPMENTS_API_PATH = '/api/shop/storing/shipments';
 
 	const ShipmentTableState = {
@@ -122,7 +161,7 @@
 			this.oldSelectClasses = [];
 			this.commonInputs = [];
 			this.main = this.newOuterTable();
-			
+
 			let rowHeader = this.main.insertRow(-1);
 			let row0 = this.main.insertRow(-1);
 			let cell00 = row0.insertCell(-1);
@@ -651,6 +690,7 @@
 			handler(null);
 		});
 	}
+
 </script>
 
 </html>
