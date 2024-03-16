@@ -34,33 +34,33 @@ internal static class ShopStoringShipmentsApiTrigger
 			string partition = request.Query["partition"];
 			if (string.IsNullOrEmpty(partition))
 				return Task.FromResult<IActionResult>(new BadRequestObjectResult("'partition' parameter is required"));
-			bool getAll;
-			string shipmentId;
-			string continuationToken;
-			string data;
+			bool getAll = false;
+			string shipmentId = null;
+			string continuationToken = null;
+			string data = null;
+			string deviceId = null;
+			bool releaseModLock = false;
 			if ((request.Method == "POST") || (request.Method == "PUT"))
 			{
-				getAll = false;
-				shipmentId = continuationToken = null;
 				using (var bodyReader = new StreamReader(request.Body, Encoding.UTF8))
 					data = bodyReader.ReadToEnd();
+				if (request.Method == "PUT")
+				{
+					deviceId = Authorization.DeviceIdentity.GetDeviceId(request);
+					releaseModLock = request.Query["release_modlock"] == "true";
+				}
 			}
 			else
 			{
 				getAll = request.Query["all"] == "true";
 				if (getAll)
-				{
-					shipmentId = null;
 					continuationToken = request.Query["page"];
-				}
 				else
 				{
 					shipmentId = request.Query["id"];
 					if (string.IsNullOrEmpty(shipmentId))
 						return Task.FromResult<IActionResult>(new BadRequestObjectResult("'id' parameter is required"));
-					continuationToken = null;
 				}
-				data = null;
 			}
 			switch (request.Method)
 			{
@@ -71,7 +71,7 @@ internal static class ShopStoringShipmentsApiTrigger
 				case "POST":
 					return ProcessPost(partition, data, logger);
 				case "PUT":
-					return ProcessPut(partition, data, logger);
+					return ProcessPut(partition, data, deviceId, releaseModLock, logger);
 				case "DELETE":
 					return ProcessDelete(partition, shipmentId, logger);
 			}
@@ -131,7 +131,7 @@ internal static class ShopStoringShipmentsApiTrigger
 			shipment.PartitionKey = partition;
 			Azure.Response storageResponse = await Storage.PostShipment(shipment);
 			if (storageResponse.Status == 200)
-				return new OkObjectResult(shipment.Id);
+				return new OkObjectResult(shipment.ToJson().ToString(Newtonsoft.Json.Formatting.None));
 			return new StatusCodeResult(storageResponse.Status);
 		}
 		catch (Azure.RequestFailedException ex)
@@ -141,7 +141,8 @@ internal static class ShopStoringShipmentsApiTrigger
 		}
 	}
 
-	private static async Task<IActionResult> ProcessPut(string partition, string data, ILogger logger)
+	private static async Task<IActionResult> ProcessPut(string partition, string data, string deviceId,
+		bool releaseModLock, ILogger logger)
 	{
 		if (string.IsNullOrEmpty(data))
 			return new BadRequestObjectResult("Body is required");
@@ -149,7 +150,9 @@ internal static class ShopStoringShipmentsApiTrigger
 		try
 		{
 			shipment.PartitionKey = partition;
-			Azure.Response storageResponse = await Storage.PutShipment(shipment);
+			(Azure.Response storageResponse, shipment) = await Storage.PutShipment(shipment, deviceId, releaseModLock);
+			if (storageResponse?.Status == 200)
+				return new OkObjectResult(shipment.ToJson().ToString(Newtonsoft.Json.Formatting.None));
 			return new StatusCodeResult(storageResponse.Status);
 		}
 		catch (Azure.RequestFailedException ex)

@@ -7,9 +7,11 @@ namespace ShopServices.Shop.Storing.Models;
 
 internal class Shipment : ITableEntity
 {
+	public const long ModLockResetInterval = 30 * 60; // in seconds
+
 	public string PartitionKey { get; set; }
 	public string RowKey { get => Id; set => Id = value; }
-	public DateTimeOffset? Timestamp { get; set; }
+	public DateTimeOffset? Timestamp { get; set; } //~ Could this be used instead of lastModTS?
 	public ETag ETag { get; set; }
 
 	/*
@@ -49,6 +51,17 @@ internal class Shipment : ITableEntity
 	public string Comments { get; set; }
 	public string MoyskladData { get; set; }
 	public long LastModTS { get; set; }
+	public string EditorId { get; set; }
+	public long ModLockTS { get; set; }
+
+	public bool IsModLocked(long now)
+	{
+		return (EditorId != null) && (now < ModLockTS + ModLockResetInterval);
+	}
+	public bool IsModLockedBy(string deviceId, long now)
+	{
+		return (EditorId == deviceId) && (now < ModLockTS + ModLockResetInterval);
+	}
 
 	public static Shipment FromJson(JObject jobj)
 	{
@@ -73,6 +86,9 @@ internal class Shipment : ITableEntity
 			ShippingCompany = (string)jobj.GetValue("shippingCompany"),
 			Comments = comments,
 			MoyskladData = moyskladData,
+			LastModTS = (long)jobj.GetValue("lastModTS"),
+			EditorId = (string)jobj.GetValue("editorId"),
+			ModLockTS = (long)jobj.GetValue("lastModTS"),
 		};
 	}
 
@@ -96,6 +112,8 @@ internal class Shipment : ITableEntity
 			{ "comments", (Comments != null) ? JArray.Parse(Comments) : null },
 			{ "moyskladData", (MoyskladData != null) ? JObject.Parse(MoyskladData) : null },
 			{ "lastModTS", LastModTS },
+			{ "editorId", EditorId },
+			{ "lastModTS", ModLockTS },
 		};
 	}
 
