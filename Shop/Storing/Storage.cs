@@ -62,12 +62,14 @@ internal class Storage
 
 	public static async Task<Response> PostShipment(Shipment shipment)
 	{
+		shipment.LastModTS = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 		TableClient tableClient = NewShipmentsTableClient();
 		return await tableClient.AddEntityAsync(shipment);
 	}
 
 	public static async Task<Response> PutShipment(Shipment shipment)
 	{
+		shipment.LastModTS = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 		TableClient tableClient = NewShipmentsTableClient();
 		return await tableClient.UpsertEntityAsync(shipment, TableUpdateMode.Replace);
 	}
