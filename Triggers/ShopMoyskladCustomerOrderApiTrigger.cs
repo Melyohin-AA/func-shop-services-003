@@ -28,10 +28,8 @@ internal static class ShopMoyskladCustomerOrderApiTrigger
 		string code = request.Query["code"];
 		if (string.IsNullOrEmpty(code))
 			return new BadRequestObjectResult("'code' parameter is required");
-		//~ Get UN/PW from params if provided, otherwise from env
-		string moyskladUn = Environment.GetEnvironmentVariable("MOYSKLAD_UN") ?? request.Query["un"];
-		string moyskladPw = Environment.GetEnvironmentVariable("MOYSKLAD_PW") ?? request.Query["pw"];
-		var requester = new MoySkladRequester(moyskladUn, moyskladPw, logger);
+		string moyskladAccessToken = Environment.GetEnvironmentVariable("MOYSKLAD_TOKEN");
+		var requester = new MoySkladRequester(moyskladAccessToken, logger);
 		var customerOrderRequest = new CustomerOrderRequest(requester);
 		await customerOrderRequest.ExecuteByCode(code);
 		JObject responseJson;

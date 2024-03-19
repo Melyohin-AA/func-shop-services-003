@@ -29,6 +29,8 @@ internal static class ShopStoringShipmentsApiTrigger
 				logger.LogInformation("Failed to auth");
 				return Task.FromResult<IActionResult>(new UnauthorizedResult());
 			}
+			//Azure.Core.TokenCredential cred = new Azure.Identity.DefaultAzureCredential();
+			//logger.LogInformation($"[{cred.GetToken}]");
 			string partition = request.Query["partition"];
 			if (string.IsNullOrEmpty(partition))
 				return Task.FromResult<IActionResult>(new BadRequestObjectResult("'partition' parameter is required"));
