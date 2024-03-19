@@ -1,7 +1,7 @@
 In order to setup the server to run it locally follow the following steps:
 1. Delete `local.settings.json` file if it exists.
 2. In terminal change directory to the project root directory.
-3. Log into your Azure account.
+3. Log into your Azure account:
 ```ps
 az login
 ```
