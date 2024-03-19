@@ -130,7 +130,7 @@ internal static class ShopStoringShipmentsApiTrigger
 		{
 			shipment.PartitionKey = partition;
 			Azure.Response storageResponse = await Storage.PostShipment(shipment);
-			if (storageResponse.Status == 200)
+			if (storageResponse.Status == 204)
 				return new OkObjectResult(shipment.Id);
 			return new StatusCodeResult(storageResponse.Status);
 		}
