@@ -10,7 +10,7 @@ az login
 ```ps
 az account set --subscription "ShopServicesSubscription"
 ```
-5. Fetch the configuration of `func-shop-services-003`:
+5. Fetch the configuration of **func-shop-services-003**:
 ```ps
 func azure functionapp fetch-app-settings func-shop-services-003
 ```
