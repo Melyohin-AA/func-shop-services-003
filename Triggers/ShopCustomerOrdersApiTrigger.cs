@@ -27,9 +27,8 @@ internal static class ShopCustomerOrdersApiTrigger
 			return new UnauthorizedResult();
 		}
 		string email = request.Query["email"];
-		string moyskladUn = Environment.GetEnvironmentVariable("MOYSKLAD_UN") ?? request.Query["un"];
-		string moyskladPw = Environment.GetEnvironmentVariable("MOYSKLAD_PW") ?? request.Query["pw"];
-		var requester = new MoySkladRequester(moyskladUn, moyskladPw, logger);
+		string moyskladAccessToken = Environment.GetEnvironmentVariable("MOYSKLAD_TOKEN");
+		var requester = new MoySkladRequester(moyskladAccessToken, logger);
 		var customerRequest = new CustomerRequest(requester);
 		await customerRequest.ExecuteByEmail(email);
 		JObject responseJson;

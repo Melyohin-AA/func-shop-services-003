@@ -11,17 +11,12 @@ namespace ShopServices.Shop.MoySkald;
 
 internal class MoySkladRequester
 {
-	private readonly string username;
-	private readonly string password;
+	private readonly string accessToken;
 	private readonly ILogger logger;
 
-	/// <param name="username">Username to access MoySklad API; ASCII chars only</param>
-	/// <param name="password">Password to access MoySklad API; ASCII chars only</param>
-	/// <param name="logger"></param>
-	public MoySkladRequester(string username, string password, ILogger logger)
+	public MoySkladRequester(string accessToken, ILogger logger)
 	{
-		this.username = username;
-		this.password = password;
+		this.accessToken = accessToken;
 		this.logger = logger;
 	}
 
@@ -32,9 +27,7 @@ internal class MoySkladRequester
 		{
 			var request = new HttpRequestMessage(HttpMethod.Get, uri);
 			request.Headers.Add("Accept-Encoding", "gzip");
-			string auth = $"{username}:{password}";
-			string encodedAuth = Convert.ToBase64String(Encoding.ASCII.GetBytes(auth));
-			request.Headers.Authorization = new AuthenticationHeaderValue("Basic", encodedAuth);
+			request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 			HttpResponseMessage response = await allocatedHttp.Http.SendAsync(request);
 			if (!response.IsSuccessStatusCode)
 			{
