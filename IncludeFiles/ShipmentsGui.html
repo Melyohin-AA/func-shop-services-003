@@ -407,6 +407,7 @@
 				this.comment1.value = data.customerOrder.description;
 				this.shippingCompany.value = data.customerOrder.shippingCompany;
 			}
+			this.recolorToMatchState();
 		}
 
 		fillMoyskladDataTable(data) {
@@ -474,6 +475,7 @@
 			this.comment2.value = jobj.comments[2];
 			this.comment3.value = jobj.comments[3];
 			this.moyskladData = jobj.moyskladData;
+			this.recolorToMatchState();
 		}
 
 		requestPost(handler) {
@@ -583,6 +585,7 @@
 					shipmentTable.fromJson(shipment);
 					createdShipmentTables[shipmentTable.shipmentId.value] = shipmentTable;
 					shipmentTable.nestElements(createdShipmentArea);
+					shipmentTable.recolorToMatchState();
 				}
 			}
 			loadingLabel.style.display = 'none';
