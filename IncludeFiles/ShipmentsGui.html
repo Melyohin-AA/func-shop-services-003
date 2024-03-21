@@ -246,7 +246,7 @@
 			this.tableState = null;
 			this.unchanged = null;
 			this.lock = false;
-			this.main.onchange = () => this.recolorToMatchState();
+			this.state.onchange = () => this.recolorToMatchState();
 			this.recolorToMatchState();
 		}
 
