@@ -359,7 +359,8 @@
 			for (const input of this.commonInputs) {
 				input.disabled = false;
 			}
-			fetchCustomerOrder(this.orderIds.value, (newData) => this.updateMoyskladData(newData, true));
+			this.fillMoyskladDataTable(this.moyskladData);
+			//fetchCustomerOrder(this.orderIds.value, (newData) => this.updateMoyskladData(newData, true));
 			
 		}
 
@@ -391,10 +392,9 @@
 			this.lock = false;
 		}
 
-		updateMoyskladData(data, fillTableWithoutChangingState) {
+		updateMoyskladData(data) {
 			this.moyskladData = data;
 			this.fillMoyskladDataTable(data);
-			if (fillTableWithoutChangingState) return;
 			this.state.selectedIndex = 1;
 			this.group.selectedIndex = 1;
 			if (data == null) return;
