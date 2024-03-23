@@ -359,6 +359,8 @@
 			for (const input of this.commonInputs) {
 				input.disabled = false;
 			}
+			fetchCustomerOrder(this.orderIds.value, (newData) => this.updateMoyskladData(newData, true));
+			
 		}
 
 		setView() {
@@ -389,9 +391,10 @@
 			this.lock = false;
 		}
 
-		updateMoyskladData(data) {
+		updateMoyskladData(data, fillTableWithoutChangingState) {
 			this.moyskladData = data;
 			this.fillMoyskladDataTable(data);
+			if (fillTableWithoutChangingState) return;
 			this.state.selectedIndex = 1;
 			this.group.selectedIndex = 1;
 			if (data == null) return;
