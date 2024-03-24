@@ -6,15 +6,14 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using ShopServices.Shop.Storing;
-using ShopServices.Shop.Storing.Models;
 
 namespace ShopServices.Triggers;
 
-internal static class ShopStoringShipmentModLockApiTrigger
+internal static class ShopStoringShipmentLockApiTrigger
 {
-	public const string Route = "api/shop/storing/shipment-modlock";
+	public const string Route = "api/shop/storing/shipment-lock";
 
-	[FunctionName(nameof(ShopStoringShipmentModLockApiTrigger))]
+	[FunctionName(nameof(ShopStoringShipmentLockApiTrigger))]
 	public static Task<IActionResult> Run(
 		[HttpTrigger(AuthorizationLevel.Anonymous, "post", "delete", Route = Route)] HttpRequest request,
 		ILogger logger)
@@ -28,20 +27,21 @@ internal static class ShopStoringShipmentModLockApiTrigger
 			}
 			string deviceId = Authorization.DeviceIdentity.GetDeviceId(request);
 			if (string.IsNullOrEmpty(deviceId))
-				return Task.FromResult<IActionResult>(
-					new BadRequestObjectResult("'deviceId' header/cookie is required"));
+				return Task.FromResult<IActionResult>(new BadRequestObjectResult(
+					$"'{Authorization.DeviceIdentity.DeviceIdHeader}' header/cookie is required"));
 			string partition = request.Query["partition"];
 			if (string.IsNullOrEmpty(partition))
 				return Task.FromResult<IActionResult>(new BadRequestObjectResult("'partition' parameter is required"));
 			string shipmentId = request.Query["id"];
 			if (string.IsNullOrEmpty(shipmentId))
 				return Task.FromResult<IActionResult>(new BadRequestObjectResult("'id' parameter is required"));
+			var storage = new Storage(partition, deviceId, logger);
 			switch (request.Method)
 			{
 				case "POST":
-					return ProcessPost(partition, shipmentId, deviceId, logger);
+					return ProcessPost(storage, shipmentId);
 				case "DELETE":
-					return ProcessDelete(partition, shipmentId, deviceId, logger);
+					return ProcessDelete(storage, shipmentId);
 			}
 			return Task.FromResult<IActionResult>(new ContentResult() {
 				StatusCode = 500,
@@ -58,35 +58,15 @@ internal static class ShopStoringShipmentModLockApiTrigger
 		}
 	}
 
-	private static async Task<IActionResult> ProcessPost(string partition, string shipmentId, string deviceId,
-		ILogger logger)
+	private static async Task<IActionResult> ProcessPost(Storage storage, string shipmentId)
 	{
-		try
-		{
-			Shipment shipment = await Storage.AcquireShipmentModLock(partition, shipmentId, deviceId);
-			if (shipment == null)
-				return new StatusCodeResult(508);
-			return new OkObjectResult(shipment.ToJson().ToString(Newtonsoft.Json.Formatting.None));
-		}
-		catch (Azure.RequestFailedException ex)
-		{
-			logger.LogError($"Failed to acquire shipment '{partition}/{shipmentId}' modlock: {ex}");
-			return new StatusCodeResult(ex.Status);
-		}
+		int code = await storage.AcquireShipmentLock(shipmentId);
+		return new StatusCodeResult(code);
 	}
 
-	private static async Task<IActionResult> ProcessDelete(string partition, string shipmentId, string deviceId,
-		ILogger logger)
+	private static async Task<IActionResult> ProcessDelete(Storage storage, string shipmentId)
 	{
-		try
-		{
-			await Storage.ReleaseShipmentModLock(partition, shipmentId, deviceId);
-			return new NoContentResult();
-		}
-		catch (Azure.RequestFailedException ex)
-		{
-			logger.LogError($"Failed to release shipment '{partition}/{shipmentId}' modlock: {ex}");
-			return new StatusCodeResult(ex.Status);
-		}
+		int code = await storage.ReleaseShipmentLock(shipmentId);
+		return new StatusCodeResult(code);
 	}
 }

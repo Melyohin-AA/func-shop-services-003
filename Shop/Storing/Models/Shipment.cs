@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.Serialization;
 using Azure;
 using Azure.Data.Tables;
 using Newtonsoft.Json.Linq;
@@ -7,10 +8,8 @@ namespace ShopServices.Shop.Storing.Models;
 
 internal class Shipment : ITableEntity
 {
-	public const long ModLockResetInterval = 30 * 60; // in seconds
-
 	public string PartitionKey { get; set; }
-	public string RowKey { get => Id; set => Id = value; }
+	public string RowKey { get; set; }
 	public DateTimeOffset? Timestamp { get; set; } //~ Could this be used instead of lastModTS?
 	public ETag ETag { get; set; }
 
@@ -34,7 +33,8 @@ internal class Shipment : ITableEntity
 	lastModTS
 	*/
 
-	public string Id { get; set; }
+	[IgnoreDataMember]
+	public string Id { get => RowKey; set => RowKey = value; }
 	public int Group { get; set; }
 	public int State { get; set; }
 	public string TrackCode { get; set; }
@@ -51,17 +51,6 @@ internal class Shipment : ITableEntity
 	public string Comments { get; set; }
 	public string MoyskladData { get; set; }
 	public long LastModTS { get; set; }
-	public string EditorId { get; set; }
-	public long ModLockTS { get; set; }
-
-	public bool IsModLocked(long now)
-	{
-		return (EditorId != null) && (now < ModLockTS + ModLockResetInterval);
-	}
-	public bool IsModLockedBy(string deviceId, long now)
-	{
-		return (EditorId == deviceId) && (now < ModLockTS + ModLockResetInterval);
-	}
 
 	public static Shipment FromJson(JObject jobj)
 	{
@@ -71,8 +60,8 @@ internal class Shipment : ITableEntity
 		string moyskladData = moyskladDataJobj?.ToString(Newtonsoft.Json.Formatting.None);
 		return new Shipment() {
 			Id = (string)jobj.GetValue("id"),
-			Group = (int)jobj.GetValue("group"),
-			State = (int)jobj.GetValue("state"),
+			Group = GetJobjectValueAsInt32(jobj.GetValue("group")),
+			State = GetJobjectValueAsInt32(jobj.GetValue("state")),
 			TrackCode = (string)jobj.GetValue("trackCode"),
 			OrderIds = (string)jobj.GetValue("orderIds"),
 			CustomerName = (string)jobj.GetValue("customerName"),
@@ -86,11 +75,13 @@ internal class Shipment : ITableEntity
 			ShippingCompany = (string)jobj.GetValue("shippingCompany"),
 			Comments = comments,
 			MoyskladData = moyskladData,
-			LastModTS = (long)jobj.GetValue("lastModTS"),
-			EditorId = (string)jobj.GetValue("editorId"),
-			ModLockTS = (long)jobj.GetValue("lastModTS"),
+			LastModTS = GetJobjectValueAsInt64(jobj.GetValue("lastModTS")),
 		};
 	}
+	private static int GetJobjectValueAsInt32(JToken token) =>
+		(token != null) ? (int)token : 0;
+	private static long GetJobjectValueAsInt64(JToken token) =>
+		(token != null) ? (long)token : 0L;
 
 	public JObject ToJson()
 	{
@@ -112,8 +103,6 @@ internal class Shipment : ITableEntity
 			{ "comments", (Comments != null) ? JArray.Parse(Comments) : null },
 			{ "moyskladData", (MoyskladData != null) ? JObject.Parse(MoyskladData) : null },
 			{ "lastModTS", LastModTS },
-			{ "editorId", EditorId },
-			{ "lastModTS", ModLockTS },
 		};
 	}
 
@@ -126,7 +115,7 @@ internal class Shipment : ITableEntity
 		char hour = IntToAlpha(now.Hour);
 		string minute = now.Minute.ToString("D2");
 		string second = now.Second.ToString("D2");
-		char third = IntToAlpha(now.Millisecond / 39);
+		char third = IntToAlpha(now.Millisecond / 39); //~ make deeper
 		Id = $"{year}{month}{day}{hour}{minute}{second}{third}";
 	}
 	private char IntToAlpha(int num)

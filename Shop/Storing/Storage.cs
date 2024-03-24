@@ -5,6 +5,7 @@ using Azure;
 using Azure.Core;
 using Azure.Data.Tables;
 using Azure.Identity;
+using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json.Linq;
 using ShopServices.Shop.Storing.Models;
@@ -13,108 +14,186 @@ namespace ShopServices.Shop.Storing;
 
 internal class Storage
 {
-	//~ Change to connection string
-	public static readonly string tableUri = Environment.GetEnvironmentVariable("STORING_TABLE_URI");
+	private static readonly TableServiceClient shipmentServiceClient;
+	private static readonly TableClient shipmentTable;
+	private static readonly TableServiceClient shipmentLockServiceClient;
+	private static readonly TableClient shipmentLockTable;
 
-	private static readonly object serviceClientLock = new object();
-	private static TableServiceClient serviceClient;
-	private static TableServiceClient ServiceClient
+	static Storage()
 	{
-		get
+		//~ Change to connection strings
+		TokenCredential cred = new DefaultAzureCredential();
+		string shipmentTableUri = Environment.GetEnvironmentVariable("SHIPMENT_TABLE_URI");
+		shipmentServiceClient = new TableServiceClient(new Uri(shipmentTableUri), cred);
+		shipmentTable = shipmentServiceClient.GetTableClient("Shipments");
+		string shipmentLockTableUri = Environment.GetEnvironmentVariable("SHIPMENT_LOCK_TABLE_URI");
+		shipmentLockServiceClient = new TableServiceClient(new Uri(shipmentLockTableUri), cred);
+		shipmentLockTable = shipmentLockServiceClient.GetTableClient("ShipmentLocks");
+	}
+
+	public string Partition { get; }
+	public string DeviceId { get; }
+	public ILogger Logger { get; }
+
+	public Storage(string partition, string deviceId, ILogger logger)
+	{
+		Partition = partition;
+		DeviceId = deviceId;
+		Logger = logger;
+	}
+
+	public async Task<(int, ShipmentPage)> GetShipments(string continuationToken)
+	{
+		string filter = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, Partition);
+		try
 		{
-			if (serviceClient == null)
-			{
-				lock (serviceClientLock)
-				{
-					if (serviceClient == null)
-					{
-						TokenCredential cred = new DefaultAzureCredential();
-						serviceClient = new TableServiceClient(new Uri(tableUri), cred);
-					}
-				}
-			}
-			return serviceClient;
+			AsyncPageable<Shipment> shipments = shipmentTable.QueryAsync<Shipment>(filter: filter, maxPerPage: 256);
+			await foreach (Page<Shipment> page in shipments.AsPages(continuationToken))
+				return (200, new ShipmentPage(page));
+		}
+		catch (RequestFailedException ex)
+		{
+			Logger.LogError($"Failed to get shipments '{continuationToken}': {ex}");
+			return (ex.Status, new ShipmentPage());
+		}
+		return (200, new ShipmentPage());
+	}
+
+	public async Task<(int, Shipment)> GetShipment(string id)
+	{
+		try
+		{
+			return (200, await shipmentTable.GetEntityAsync<Shipment>(Partition, id));
+		}
+		catch (RequestFailedException ex)
+		{
+			Logger.LogError($"Failed to get shipment '{id}': {ex}");
+			return (ex.Status, null);
 		}
 	}
 
-	public static TableClient NewShipmentsTableClient()
+	public async Task<int> PostShipment(Shipment shipment)
 	{
-		return ServiceClient.GetTableClient("Shipments");
-	}
-
-	public static async Task<ShipmentPage> GetShipments(string partition, string continuationToken)
-	{
-		TableClient tableClient = NewShipmentsTableClient();
-		string filter = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partition);
-		AsyncPageable<Shipment> shipments = tableClient.QueryAsync<Shipment>(filter: filter, maxPerPage: 256);
-		await foreach (Page<Shipment> page in shipments.AsPages(continuationToken))
-			return new ShipmentPage(page);
-		return new ShipmentPage();
-	}
-
-	public static async Task<Response<Shipment>> GetShipment(string partition, string id)
-	{
-		TableClient tableClient = NewShipmentsTableClient();
-		return await tableClient.GetEntityAsync<Shipment>(partition, id);
-	}
-
-	public static async Task<Response> PostShipment(Shipment shipment)
-	{
+		shipment.PartitionKey = Partition;
 		shipment.LastModTS = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-		TableClient tableClient = NewShipmentsTableClient();
-		return await tableClient.AddEntityAsync(shipment);
+		return await MakeRequest(shipmentTable.AddEntityAsync(shipment));
 	}
 
-	public static async Task<(Response, Shipment)> PutShipment(Shipment shipment, string deviceId, bool releaseModLock)
+	public async Task<int> PutShipment(Shipment shipment, bool releaseLock)
 	{
-		TableClient tableClient = NewShipmentsTableClient();
-		Shipment former = await tableClient.GetEntityAsync<Shipment>(shipment.PartitionKey, shipment.Id);
-		long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-		if (((deviceId != former.EditorId) && former.IsModLocked(now)) || (now != former.LastModTS))
-			return (null, former);
-		shipment.LastModTS = now;
-		if (releaseModLock)
-			shipment.EditorId = null;
-		Response response = await tableClient.UpdateEntityAsync(shipment, former.ETag, TableUpdateMode.Replace);
-		if (response.Status / 100 != 2)
-			return (response, former);
-		return (response, shipment);
+		Shipment former = await MakeRequest(shipmentTable.GetEntityIfExistsAsync<Shipment>(Partition, shipment.Id));
+		if ((shipment == null) || (shipment.LastModTS != former.LastModTS))
+			return 409;
+		ShipmentLock shLock =
+			await MakeRequest(shipmentLockTable.GetEntityIfExistsAsync<ShipmentLock>(Partition, shipment.Id));
+		//~ Update lock if own lock
+		if (shLock?.IsLockedNotBy(DeviceId, DateTimeOffset.UtcNow.ToUnixTimeSeconds()) ?? true)
+			return 403;
+		shipment.PartitionKey = Partition;
+		shipment.LastModTS = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+		int code = await MakeRequest(shipmentTable.UpdateEntityAsync(shipment, former.ETag, TableUpdateMode.Replace));
+		if (code != 204)
+			return code;
+		if (releaseLock && (shLock != null))
+			return await MakeRequest(shipmentLockTable.DeleteEntityAsync(Partition, shipment.Id, shLock.ETag));
+		return 204;
 	}
 
-	public static async Task<Response> DeleteShipment(string partition, string id, ETag ifMatch = default)
+	public async Task<int> DeleteShipment(string id)
 	{
-		TableClient tableClient = NewShipmentsTableClient();
-		return await tableClient.DeleteEntityAsync(partition, id, ifMatch);
-	}
-
-	public static async Task<Shipment> AcquireShipmentModLock(string partition, string id, string deviceId)
-	{
-		TableClient tableClient = NewShipmentsTableClient();
-		for (byte attempt = 0; attempt < 4; attempt++)
+		ShipmentLock shLock =
+			await MakeRequest(shipmentLockTable.GetEntityIfExistsAsync<ShipmentLock>(Partition, id));
+		(int acquireLockCode, Shipment shipment) = await AcquireShipmentLock(id, shLock);
+		if (acquireLockCode != 204)
+			return acquireLockCode;
+		int deleteShipmentCode = await MakeRequest(shipmentTable.DeleteEntityAsync(Partition, id, shipment.ETag));
+		if ((deleteShipmentCode == 204) || (shLock == null))
 		{
-			Shipment shipment = await tableClient.GetEntityAsync<Shipment>(partition, id);
-			long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-			if (shipment.IsModLocked(now))
-				return shipment;
-			shipment.EditorId = deviceId;
-			shipment.ModLockTS = now;
-			Response response = await tableClient.UpdateEntityAsync(shipment, shipment.ETag, TableUpdateMode.Replace);
-			if (response.Status / 100 == 2)
-				return shipment;
+			int releaseLockCode = await ReleaseShipmentLock(id);
+			if (releaseLockCode != 204)
+				Logger.LogError($"Failed to release shipment lock '{id}': code {releaseLockCode}");
 		}
-		return null;
+		return deleteShipmentCode;
 	}
 
-	public static async Task ReleaseShipmentModLock(string partition, string id, string deviceId)
+	public async Task<int> AcquireShipmentLock(string shipmentId)
 	{
-		TableClient tableClient = NewShipmentsTableClient();
-		Shipment shipment = await tableClient.GetEntityAsync<Shipment>(partition, id);
+		ShipmentLock shLock =
+			await MakeRequest(shipmentLockTable.GetEntityIfExistsAsync<ShipmentLock>(Partition, shipmentId));
+		(int code, Shipment _) = await AcquireShipmentLock(shipmentId, shLock);
+		return code;
+	}
+	private async Task<(int, Shipment)> AcquireShipmentLock(string shipmentId, ShipmentLock shLock)
+	{
+		int code;
+		if (shLock != null)
+		{
+			long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+			if (shLock.IsLockedNotBy(DeviceId, now))
+				return (403, null);
+			shLock.EditorId = DeviceId;
+			code = await MakeRequest(shipmentLockTable.UpdateEntityAsync(shLock, shLock.ETag));
+		}
+		else
+		{
+			shLock = new ShipmentLock() {
+				PartitionKey = Partition,
+				ShipmentId = shipmentId,
+				EditorId = DeviceId,
+			};
+			code = await MakeRequest(shipmentLockTable.AddEntityAsync(shLock));
+		}
+		if (code != 204)
+			return (code, null);
+		Shipment shipment = await MakeRequest(shipmentTable.GetEntityIfExistsAsync<Shipment>(Partition, shipmentId));
+		if (shipment != null)
+			return (204, shipment);
+		// Preventing locking an inexistent shipment
+		int deleteShipmentCode =
+			await MakeRequest(shipmentLockTable.DeleteEntityAsync(Partition, shipmentId, shLock.ETag));
+		if (deleteShipmentCode != 204)
+			Logger.LogError($"Failed to delete shipment lock '{shipmentId}' due to inexistence of its shipment");
+		return (400, null);
+	}
+
+	public async Task<int> ReleaseShipmentLock(string shipmentId)
+	{
+		ShipmentLock shLock =
+			await MakeRequest(shipmentLockTable.GetEntityIfExistsAsync<ShipmentLock>(Partition, shipmentId));
+		if (shLock == null)
+			return 204;
 		long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-		if (!shipment.IsModLockedBy(deviceId, now)) return;
-		shipment.EditorId = null;
-		Response response = await tableClient.UpdateEntityAsync(shipment, shipment.ETag, mode: TableUpdateMode.Replace);
-		if (response.Status / 100 != 2)
-			throw new Exception($"Failed to release shipment '{partition}/{id}' modlock");
+		if (shLock.IsLockedNotBy(DeviceId, now))
+			return 403;
+		int deleteCode = await MakeRequest(shipmentLockTable.DeleteEntityAsync(Partition, shipmentId, shLock.ETag));
+		return (deleteCode != 404) ? deleteCode : 204;
+	}
+
+	private async Task<int> MakeRequest(Task<Response> task)
+	{
+		try
+		{
+			Response response = await task;
+			return response.Status;
+		}
+		catch (RequestFailedException ex)
+		{
+			Logger.LogError(ex.ToString());
+			return ex.Status;
+		}
+	}
+	private async Task<T> MakeRequest<T>(Task<NullableResponse<T>> task) where T : class
+	{
+		try
+		{
+			NullableResponse<T> response = await task;
+			return response.HasValue ? response.Value : null;
+		}
+		catch (RequestFailedException ex)
+		{
+			Logger.LogError(ex.ToString());
+			return null;
+		}
 	}
 
 	public struct ShipmentPage
