@@ -46,7 +46,7 @@ internal static class ShopStoringShipmentsApiTrigger
 				using (var bodyReader = new StreamReader(request.Body, Encoding.UTF8))
 					data = bodyReader.ReadToEnd();
 				if (request.Method == "PUT")
-					releaseModLock = request.Query["release_modlock"] == "true";
+					releaseModLock = request.Query["release_lock"] == "true";
 			}
 			else
 			{

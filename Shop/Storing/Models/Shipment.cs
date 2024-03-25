@@ -10,7 +10,7 @@ internal class Shipment : ITableEntity
 {
 	public string PartitionKey { get; set; }
 	public string RowKey { get; set; }
-	public DateTimeOffset? Timestamp { get; set; } //~ Could this be used instead of lastModTS?
+	public DateTimeOffset? Timestamp { get; set; }
 	public ETag ETag { get; set; }
 
 	/*
@@ -50,7 +50,12 @@ internal class Shipment : ITableEntity
 	public string ShippingCompany { get; set; }
 	public string Comments { get; set; }
 	public string MoyskladData { get; set; }
-	public long LastModTS { get; set; }
+	[IgnoreDataMember]
+	public long LastModTS
+	{
+		get => Timestamp?.ToUnixTimeSeconds() ?? 0L;
+		set => Timestamp = DateTimeOffset.FromUnixTimeSeconds(value);
+	}
 
 	public static Shipment FromJson(JObject jobj)
 	{
@@ -115,8 +120,8 @@ internal class Shipment : ITableEntity
 		char hour = IntToAlpha(now.Hour);
 		string minute = now.Minute.ToString("D2");
 		string second = now.Second.ToString("D2");
-		char third = IntToAlpha(now.Millisecond / 39); //~ make deeper
-		Id = $"{year}{month}{day}{hour}{minute}{second}{third}";
+		string millis = now.Millisecond.ToString("D3");
+		Id = $"{year}{month}{day}{hour}{minute}{second}-{millis}";
 	}
 	private char IntToAlpha(int num)
 	{

@@ -12,6 +12,8 @@ using ShopServices.Shop.Storing.Models;
 
 namespace ShopServices.Shop.Storing;
 
+// TODO: Cover 'Storage' methods with unit tests
+
 internal class Storage
 {
 	private static readonly TableServiceClient shipmentServiceClient;
@@ -21,8 +23,8 @@ internal class Storage
 
 	static Storage()
 	{
-		//~ Change to connection strings
 		TokenCredential cred = new DefaultAzureCredential();
+		// TODO: Replace with connection strings
 		string shipmentTableUri = Environment.GetEnvironmentVariable("SHIPMENT_TABLE_URI");
 		shipmentServiceClient = new TableServiceClient(new Uri(shipmentTableUri), cred);
 		shipmentTable = shipmentServiceClient.GetTableClient("Shipments");
@@ -75,7 +77,6 @@ internal class Storage
 	public async Task<int> PostShipment(Shipment shipment)
 	{
 		shipment.PartitionKey = Partition;
-		shipment.LastModTS = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 		return await MakeRequest(shipmentTable.AddEntityAsync(shipment));
 	}
 
@@ -86,16 +87,22 @@ internal class Storage
 			return 409;
 		ShipmentLock shLock =
 			await MakeRequest(shipmentLockTable.GetEntityIfExistsAsync<ShipmentLock>(Partition, shipment.Id));
-		//~ Update lock if own lock
-		if (shLock?.IsLockedNotBy(DeviceId, DateTimeOffset.UtcNow.ToUnixTimeSeconds()) ?? true)
+		long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+		if (shLock?.IsLockedNotBy(DeviceId, now) ?? false)
 			return 403;
 		shipment.PartitionKey = Partition;
-		shipment.LastModTS = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 		int code = await MakeRequest(shipmentTable.UpdateEntityAsync(shipment, former.ETag, TableUpdateMode.Replace));
 		if (code != 204)
 			return code;
-		if (releaseLock && (shLock != null))
-			return await MakeRequest(shipmentLockTable.DeleteEntityAsync(Partition, shipment.Id, shLock.ETag));
+		if (shLock != null)
+		{
+			if (releaseLock || !shLock.IsLocked(now))
+				return await MakeRequest(shipmentLockTable.DeleteEntityAsync(Partition, shipment.Id, shLock.ETag));
+			// Renewing the shipment lock if it is locked by the current device
+			int upateLockCode = await MakeRequest(shipmentLockTable.UpdateEntityAsync(shLock, shLock.ETag));
+			if (upateLockCode != 204)
+				Logger.LogError($"Failed to update shipment lock '{shipment.Id}': code {upateLockCode}");
+		}
 		return 204;
 	}
 
