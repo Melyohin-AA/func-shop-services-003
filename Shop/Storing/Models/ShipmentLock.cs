@@ -8,7 +8,7 @@ namespace ShopServices.Shop.Storing.Models;
 
 internal class ShipmentLock : ITableEntity
 {
-	public const long ModLockResetInterval = 30 * 60; // in seconds
+	public const double LockResetInterval = 30 * 60; // in seconds
 
 	public string PartitionKey { get; set; }
 	public string RowKey { get; set; }
@@ -24,15 +24,15 @@ internal class ShipmentLock : ITableEntity
 	public string ShipmentId { get => RowKey; set => RowKey = value; }
 	public string EditorId { get; set; }
 
-	public bool IsLocked(long now)
+	public bool IsLocked(DateTimeOffset now)
 	{
-		return Timestamp.HasValue && (now < Timestamp.Value.ToUnixTimeSeconds() + ModLockResetInterval);
+		return Timestamp.HasValue && (now < Timestamp.Value.AddSeconds(LockResetInterval));
 	}
-	public bool IsLockedBy(string deviceId, long now)
+	public bool IsLockedBy(string deviceId, DateTimeOffset now)
 	{
 		return (EditorId == deviceId) && IsLocked(now);
 	}
-	public bool IsLockedNotBy(string deviceId, long now)
+	public bool IsLockedNotBy(string deviceId, DateTimeOffset now)
 	{
 		return (EditorId != deviceId) && IsLocked(now);
 	}

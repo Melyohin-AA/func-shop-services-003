@@ -87,7 +87,7 @@ internal class Storage
 			return 409;
 		ShipmentLock shLock =
 			await MakeRequest(shipmentLockTable.GetEntityIfExistsAsync<ShipmentLock>(Partition, shipment.Id));
-		long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+		DateTimeOffset now = DateTimeOffset.UtcNow;
 		if (shLock?.IsLockedNotBy(DeviceId, now) ?? false)
 			return 403;
 		shipment.PartitionKey = Partition;
@@ -135,7 +135,7 @@ internal class Storage
 		int code;
 		if (shLock != null)
 		{
-			long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+			DateTimeOffset now = DateTimeOffset.UtcNow;
 			if (shLock.IsLockedNotBy(DeviceId, now))
 				return (403, null);
 			shLock.EditorId = DeviceId;
@@ -169,7 +169,7 @@ internal class Storage
 			await MakeRequest(shipmentLockTable.GetEntityIfExistsAsync<ShipmentLock>(Partition, shipmentId));
 		if (shLock == null)
 			return 204;
-		long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+		DateTimeOffset now = DateTimeOffset.UtcNow;
 		if (shLock.IsLockedNotBy(DeviceId, now))
 			return 403;
 		int deleteCode = await MakeRequest(shipmentLockTable.DeleteEntityAsync(Partition, shipmentId, shLock.ETag));

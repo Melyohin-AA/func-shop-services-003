@@ -53,8 +53,8 @@ internal class Shipment : ITableEntity
 	[IgnoreDataMember]
 	public long LastModTS
 	{
-		get => Timestamp?.ToUnixTimeSeconds() ?? 0L;
-		set => Timestamp = DateTimeOffset.FromUnixTimeSeconds(value);
+		get => Timestamp?.ToUnixTimeMilliseconds() ?? 0L;
+		set => Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(value);
 	}
 
 	public static Shipment FromJson(JObject jobj)
