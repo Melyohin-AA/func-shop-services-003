@@ -50,12 +50,7 @@ internal class Shipment : ITableEntity
 	public string ShippingCompany { get; set; }
 	public string Comments { get; set; }
 	public string MoyskladData { get; set; }
-	[IgnoreDataMember]
-	public long LastModTS
-	{
-		get => Timestamp?.ToUnixTimeMilliseconds() ?? 0L;
-		set => Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(value);
-	}
+	public long LastModTS { get; set; }
 
 	public static Shipment FromJson(JObject jobj)
 	{

@@ -116,7 +116,11 @@ internal static class ShopStoringShipmentsApiTrigger
 		int code = await storage.PostShipment(shipment);
 		if (code != 204)
 			return new StatusCodeResult(code);
-		return new OkObjectResult(shipment.Id);
+		var jsonResult = new JObject() {
+			{ "id", shipment.Id },
+			{ "lastModTS", shipment.LastModTS },
+		};
+		return new OkObjectResult(jsonResult.ToString(Newtonsoft.Json.Formatting.None));
 	}
 
 	private static async Task<IActionResult> ProcessPut(Storage storage, string data, bool releaseLock)
@@ -125,7 +129,9 @@ internal static class ShopStoringShipmentsApiTrigger
 			return new BadRequestObjectResult("Body is required");
 		Shipment shipment = Shipment.FromJson(JObject.Parse(data));
 		int code = await storage.PutShipment(shipment, releaseLock);
-		return new StatusCodeResult(code);
+		if (code != 204)
+			return new StatusCodeResult(code);
+		return new OkObjectResult(shipment.LastModTS);
 	}
 
 	private static async Task<IActionResult> ProcessDelete(Storage storage, string shipmentId)

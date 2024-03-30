@@ -77,6 +77,7 @@ internal class Storage
 	public async Task<int> PostShipment(Shipment shipment)
 	{
 		shipment.PartitionKey = Partition;
+		shipment.LastModTS = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 		return await MakeRequest(shipmentTable.AddEntityAsync(shipment));
 	}
 
@@ -91,6 +92,7 @@ internal class Storage
 		if (shLock?.IsLockedNotBy(DeviceId, now) ?? false)
 			return 403;
 		shipment.PartitionKey = Partition;
+		shipment.LastModTS = now.ToUnixTimeMilliseconds();
 		int code = await MakeRequest(shipmentTable.UpdateEntityAsync(shipment, former.ETag, TableUpdateMode.Replace));
 		if (code != 204)
 			return code;
