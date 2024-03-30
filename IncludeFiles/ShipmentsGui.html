@@ -31,26 +31,6 @@
 			background-color: gold;
 		}
 
-		.group-in-progress {
-			border-color: darkblue;
-		}
-
-		.group-red {
-			border-color: darkred;
-		}
-
-		.group-orders-from-available {
-			border-color: darkgreen;
-		}
-
-		.group-waiting {
-			border-color: darkcyan;
-		}
-
-		.group-long-order {
-			border-color: darkmagenta;
-		}
-
 		.group-completed {
 			border-color: darkgoldenrod;
 		}
@@ -157,7 +137,6 @@
 	class ShipmentTable {
 		constructor() {
 			this.selectClassesStatus = ["select-neutral", "status-awaiting-assembly", "status-assembly-in-progress", "status-assembled", "status-packed", "status-sent"];
-			this.selectClassesGroup = ["select-neutral", "group-in-progress", "group-red", "group-orders-from-available", "group-waiting", "group-long-order", "group-completed"];
 			this.oldSelectClasses = [];
 			this.commonInputs = [];
 			this.main = this.newOuterTable();
@@ -237,7 +216,7 @@
 			this.group = this.newSelect(
 				cell0_15,
 				['--Группа--', 'В РАБОТЕ', 'КРАСНАЯ', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО'],
-				this.selectClassesGroup
+				null
 			);
 			this.commonInputs.push(this.group);
 			this.initActionRows();
@@ -311,16 +290,18 @@
 		}
 
 		newSelect(hostCell, options, option_classes) {
-			if (hostCell === null || options === null || option_classes === null) {
+			if (hostCell === null || options === null) {
 				throw new Error("Parameters cannot be null");
 			}
-			if (options.length != option_classes.length) throw new Error("Invalid option_classes array length");
 			let select = document.createElement('select');
+			if (option_classes !== null && options.length != option_classes.length) {
+				throw new Error("Invalid option_classes array length");
+			}
 			for (let i = 0; i < options.length; i++) {
 				let option = document.createElement('option');
 				option.setAttribute('value', i);
 				option.innerHTML = options[i];
-				if (option_classes[i] !== "") option.classList.add(option_classes[i]);
+				if (option_classes !== null && option_classes[i] !== "") option.classList.add(option_classes[i]);
 				select.appendChild(option);
 			}
 			hostCell.appendChild(select);
@@ -533,7 +514,6 @@
 
 		recolorToMatchState() {
 			let statusClass = this.selectClassesStatus[this.state.selectedIndex];
-			let groupClass = this.selectClassesGroup[this.group.selectedIndex];
 			console.log(this.main.classList);
 
 			for (let i = 0; i < this.oldSelectClasses.length; i++) {
@@ -541,9 +521,8 @@
 				this.main.classList.toggle(elm, false);
 			}
 			this.main.classList.toggle(statusClass, true);
-			this.main.classList.toggle(groupClass, true);
 			console.log(this.main.classList);
-			this.oldSelectClasses = [statusClass, groupClass];
+			this.oldSelectClasses = [statusClass];
 		}
 
 		static requestGetAll(handler) {
