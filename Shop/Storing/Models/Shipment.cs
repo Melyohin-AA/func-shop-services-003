@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.Serialization;
 using Azure;
 using Azure.Data.Tables;
 using Newtonsoft.Json.Linq;
@@ -8,7 +9,7 @@ namespace ShopServices.Shop.Storing.Models;
 internal class Shipment : ITableEntity
 {
 	public string PartitionKey { get; set; }
-	public string RowKey { get => Id; set => Id = value; }
+	public string RowKey { get; set; }
 	public DateTimeOffset? Timestamp { get; set; }
 	public ETag ETag { get; set; }
 
@@ -32,7 +33,8 @@ internal class Shipment : ITableEntity
 	lastModTS
 	*/
 
-	public string Id { get; set; }
+	[IgnoreDataMember]
+	public string Id { get => RowKey; set => RowKey = value; }
 	public int Group { get; set; }
 	public int State { get; set; }
 	public string TrackCode { get; set; }
@@ -58,8 +60,8 @@ internal class Shipment : ITableEntity
 		string moyskladData = moyskladDataJobj?.ToString(Newtonsoft.Json.Formatting.None);
 		return new Shipment() {
 			Id = (string)jobj.GetValue("id"),
-			Group = (int)jobj.GetValue("group"),
-			State = (int)jobj.GetValue("state"),
+			Group = GetJobjectValueAsInt32(jobj.GetValue("group")),
+			State = GetJobjectValueAsInt32(jobj.GetValue("state")),
 			TrackCode = (string)jobj.GetValue("trackCode"),
 			OrderIds = (string)jobj.GetValue("orderIds"),
 			CustomerName = (string)jobj.GetValue("customerName"),
@@ -73,8 +75,13 @@ internal class Shipment : ITableEntity
 			ShippingCompany = (string)jobj.GetValue("shippingCompany"),
 			Comments = comments,
 			MoyskladData = moyskladData,
+			LastModTS = GetJobjectValueAsInt64(jobj.GetValue("lastModTS")),
 		};
 	}
+	private static int GetJobjectValueAsInt32(JToken token) =>
+		(token != null) ? (int)token : 0;
+	private static long GetJobjectValueAsInt64(JToken token) =>
+		(token != null) ? (long)token : 0L;
 
 	public JObject ToJson()
 	{
@@ -108,8 +115,8 @@ internal class Shipment : ITableEntity
 		char hour = IntToAlpha(now.Hour);
 		string minute = now.Minute.ToString("D2");
 		string second = now.Second.ToString("D2");
-		char third = IntToAlpha(now.Millisecond / 39);
-		Id = $"{year}{month}{day}{hour}{minute}{second}{third}";
+		string millis = now.Millisecond.ToString("D3");
+		Id = $"{year}{month}{day}{hour}{minute}{second}-{millis}";
 	}
 	private char IntToAlpha(int num)
 	{
