@@ -101,9 +101,9 @@ internal class Storage
 			if (releaseLock || !shLock.IsLocked(now))
 				return await MakeRequest(shipmentLockTable.DeleteEntityAsync(Partition, shipment.Id, shLock.ETag));
 			// Renewing the shipment lock if it is locked by the current device
-			int upateLockCode = await MakeRequest(shipmentLockTable.UpdateEntityAsync(shLock, shLock.ETag));
-			if (upateLockCode != 204)
-				Logger.LogError($"Failed to update shipment lock '{shipment.Id}': code {upateLockCode}");
+			int updateLockCode = await MakeRequest(shipmentLockTable.UpdateEntityAsync(shLock, shLock.ETag));
+			if (updateLockCode != 204)
+				Logger.LogError($"Failed to update shipment lock '{shipment.Id}': code {updateLockCode}");
 		}
 		return 204;
 	}
