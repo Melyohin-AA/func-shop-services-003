@@ -31,10 +31,6 @@
 			background-color: gold;
 		}
 
-		.group-completed {
-			border-color: darkgoldenrod;
-		}
-
 		.outer-table {
 			border-collapse: collapse;
 		}
@@ -97,6 +93,7 @@
 		}
 		document.cookie = name + "=" + (value || "") + expires + "; path=/";
 	}
+
 	//taken from https://stackoverflow.com/questions/51312980/how-to-get-and-set-cookies-in-javascript
 	function getCookie(name) {
 		let nameEQ = name + "=";
@@ -108,9 +105,11 @@
 		}
 		return null;
 	}
+
 	//taken from https://stackoverflow.com/questions/1349404/generate-random-string-characters-in-javascript
 	const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
 	const charactersLength = characters.length;
+
 	function generateRandomAlphanumericString(length) {
 		let result = [];
 		for (let counter = 0; counter < length; counter++) {
@@ -121,12 +120,16 @@
 
 	const DEVICE_ID_KEY = "ss-device-id";
 	const RANDOM_STRING_LENGTH = 64;
+
 	let deviceIdCookie = getCookie(DEVICE_ID_KEY);
+
 	if (deviceIdCookie === null) {
 		deviceIdCookie = generateRandomAlphanumericString(RANDOM_STRING_LENGTH);
 		setCookie(DEVICE_ID_KEY, deviceIdCookie, 36500);
 	}
-	const SHIPMENTS_API_PATH = '/api/shop/storing/shipments';
+
+	const SHIPMENTS_API_PATH = "/api/shop/storing/shipments";
+	const SHIPMENT_LOCK_API_PATH = "/api/shop/storing/shipment-lock";
 
 	const ShipmentTableState = {
 		VIEWING: 0,
@@ -140,7 +143,6 @@
 			this.oldSelectClasses = [];
 			this.commonInputs = [];
 			this.main = this.newOuterTable();
-
 			let rowHeader = this.main.insertRow(-1);
 			let row0 = this.main.insertRow(-1);
 			let cell00 = row0.insertCell(-1);
@@ -222,6 +224,7 @@
 			this.initActionRows();
 			this.moyskladDataTable = this.newOuterTable();
 			this.moyskladData = null;
+			this.lastModTS = null;
 			this.tableState = null;
 			this.unchanged = null;
 			this.lock = false;
@@ -415,6 +418,23 @@
 			row.insertCell(-1).innerHTML = value;
 		}
 
+		recolorToMatchState() {
+			let statusClass = this.selectClassesStatus[this.state.selectedIndex];
+			for (let i = 0; i < this.oldSelectClasses.length; i++) {
+				let elm = this.oldSelectClasses[i];
+				this.main.classList.toggle(elm, false);
+			}
+			this.main.classList.toggle(statusClass, true);
+			this.oldSelectClasses = [statusClass];
+		}
+
+		undoChanges() {
+			if (this.unchanged != null) {
+				this.fromJson(this.unchanged);
+				this.unchanged = null;
+			}
+		}
+
 		toJson() {
 			return {
 				id: this.shipmentId.value,
@@ -433,6 +453,7 @@
 				shippingCompany: this.shippingCompany.value,
 				comments: [this.comment0.value, this.comment1.value, this.comment2.value, this.comment3.value],
 				moyskladData: this.moyskladData,
+				lastModTS: this.lastModTS,
 			}
 		}
 
@@ -451,12 +472,44 @@
 			this.deliveryCity.value = jobj.deliveryCity;
 			this.deliveryAddress.value = jobj.deliveryAddress;
 			this.shippingCompany.value = jobj.shippingCompany;
-			this.comment0.value = jobj.comments[0];
-			this.comment1.value = jobj.comments[1];
-			this.comment2.value = jobj.comments[2];
-			this.comment3.value = jobj.comments[3];
+			let comments = jobj.comments ?? [];
+			this.comment0.value = comments[0];
+			this.comment1.value = comments[1];
+			this.comment2.value = comments[2];
+			this.comment3.value = comments[3];
 			this.moyskladData = jobj.moyskladData;
+			this.lastModTS = jobj.lastModTS;
 			this.recolorToMatchState();
+		}
+
+		requestGet(handler) {
+			let shId = this.shipmentId.value;
+			let query = new URLSearchParams({ partition: 'p1', id: shId }).toString();
+			let url = `${SHIPMENTS_API_PATH}?${query}`;
+			fetch(url).then((response) => {
+				console.log('Getting new shipment:', response);
+				if (response.status == 200) {
+					response.json().then((result) => {
+						console.log(result);
+						this.unchanged = this.toJson();
+						this.fromJson(result);
+						this.unchanged = null;
+						handler(response.status);
+					}).catch((error) => {
+						if (this.unchanged != null) {
+							this.fromJson(this.unchanged);
+							this.unchanged = null;
+						}
+						console.log('Failed to parse shipment getting response:', error);
+						handler(response.status);
+					});
+				} else {
+					handler(response.status);
+				}
+			}).catch((error) => {
+				console.log('Failed to get shipment:', error);
+				handler(null);
+			});
 		}
 
 		requestPost(handler) {
@@ -467,16 +520,17 @@
 			fetch(url, { method: 'POST', body: body }).then((response) => {
 				console.log('Posting new shipment:', response);
 				if (response.status == 200) {
-					response.text().then((shId) => {
-						console.log(shId);
-						this.shipmentId.value = shId;
-						handler(shId);
+					response.json().then((result) => {
+						console.log(result);
+						this.shipmentId.value = result.id;
+						this.lastModTS = result.lastModTS;
+						handler(response.status);
 					}).catch((error) => {
 						console.log('Failed to parse new shipment posting response:', error);
-						handler(null);
+						handler(response.status);
 					});
 				} else {
-					handler(null);
+					handler(response.status);
 				}
 			}).catch((error) => {
 				console.log('Failed to post new shipment:', error);
@@ -485,17 +539,28 @@
 		}
 
 		requestPut(handler) {
-			let query = new URLSearchParams({ partition: 'p1' }).toString();
+			let query = new URLSearchParams({ partition: 'p1', release_lock: true }).toString();
 			let url = `${SHIPMENTS_API_PATH}?${query}`;
 			let shId = this.shipmentId.value;
 			let body = JSON.stringify(this.toJson());
 			console.log(body);
 			fetch(url, { method: 'PUT', body: body }).then((response) => {
 				console.log(`Putting shipment '${shId}':`, response);
-				handler((response.status >= 200) && (response.status < 300));
+				if (response.status == 200) {
+					response.text().then((lastModTS) => {
+						console.log(lastModTS);
+						this.lastModTS = lastModTS;
+						handler(response.status);
+					}).catch((error) => {
+						console.log('Failed to parse new shipment posting response:', error);
+						handler(response.status);
+					});
+				} else {
+					handler(response.status);
+				}
 			}).catch((error) => {
 				console.log(`Failed to put shipment '${shId}':`, error);
-				handler(false);
+				handler(null);
 			});
 		}
 
@@ -505,24 +570,37 @@
 			let url = `${SHIPMENTS_API_PATH}?${query}`;
 			fetch(url, { method: 'DELETE' }).then((response) => {
 				console.log(`Deleting shipment '${shId}':`, response);
-				handler((response.status >= 200) && (response.status < 300));
+				handler(response.status);
 			}).catch((error) => {
 				console.log(`Failed to delete shipment '${shId}':`, error);
 				handler(false);
 			});
 		}
 
-		recolorToMatchState() {
-			let statusClass = this.selectClassesStatus[this.state.selectedIndex];
-			console.log(this.main.classList);
+		requestLockPost(handler) {
+			let shId = this.shipmentId.value;
+			let query = new URLSearchParams({ partition: 'p1', id: shId }).toString();
+			let url = `${SHIPMENT_LOCK_API_PATH}?${query}`;
+			fetch(url, { method: 'POST' }).then((response) => {
+				console.log('Posting shipment lock:', response);
+				handler(response.status);
+			}).catch((error) => {
+				console.log('Failed to post shipment lock:', error);
+				handler(null);
+			});
+		}
 
-			for (let i = 0; i < this.oldSelectClasses.length; i++) {
-				let elm = this.oldSelectClasses[i];
-				this.main.classList.toggle(elm, false);
-			}
-			this.main.classList.toggle(statusClass, true);
-			console.log(this.main.classList);
-			this.oldSelectClasses = [statusClass];
+		requestLockDelete(handler) {
+			let shId = this.shipmentId.value;
+			let query = new URLSearchParams({ partition: 'p1', id: shId }).toString();
+			let url = `${SHIPMENT_LOCK_API_PATH}?${query}`;
+			fetch(url, { method: 'DELETE' }).then((response) => {
+				console.log('Deleting shipment lock:', response);
+				handler(response.status);
+			}).catch((error) => {
+				console.log('Failed to delete shipment lock:', error);
+				handler(null);
+			});
 		}
 
 		static requestGetAll(handler) {
@@ -535,7 +613,7 @@
 						console.log(shipmentPage);
 						handler(shipmentPage);
 					}).catch((error) => {
-						console.log('Failed to parse new shipment posting response:', error);
+						console.log('Failed to parse shipments getting response:', error);
 						handler(null);
 					});
 				} else {
@@ -594,10 +672,12 @@
 
 	function saveNewShipmentTable(table) {
 		if ((table.tableState !== ShipmentTableState.CREATION) || !table.acquireLock()) return;
-		table.requestPost((shId) => {
-			if (shId != null) {
-				createdShipmentTables[shId] = table;
+		table.requestPost((code) => {
+			if (code == 200) {
+				createdShipmentTables[table.shipmentId.value] = table;
 				table.setView();
+			} else {
+				showInternalError();
 			}
 			table.releaseLock();
 		});
@@ -613,39 +693,71 @@
 
 	function saveShipmentTableChanges(table) {
 		if ((table.tableState !== ShipmentTableState.EDITING) || !table.acquireLock()) return;
-		table.requestPut((success) => {
-			if (success) {
+		table.requestPut((code) => {
+			if (code == 200) {
 				table.setView();
 				table.unchanged = null;
+				table.releaseLock();
+			} else if ((code == 403) || (code == 409)) {
+				table.setView();
+				table.undoChanges();
+				if (code == 403) {
+					alert("Сохранение не удалось: отправка заблокирована другим пользователем");
+				} else {
+					alert("Сохранение не удалось: отправка была изменена");
+				}
+				table.requestGet((code) => {
+					if (code != 200) {
+						showInternalError();
+					}
+					table.releaseLock();
+				});
+			} else {
+				showInternalError();
+				table.releaseLock();
 			}
-			table.releaseLock();
 		});
 	}
 
 	function cancelShipmentTableEditing(table) {
 		if ((table.tableState !== ShipmentTableState.EDITING) || !table.acquireLock()) return;
-		table.setView();
-		if (table.unchanged != null) {
-			table.fromJson(table.unchanged);
-			table.unchanged = null;
-		}
-		table.releaseLock();
+		table.requestLockDelete((code) => {
+			if ((code == 204) || (code == 403)) {
+				table.setView();
+				table.undoChanges();
+			} else {
+				showInternalError();
+			}
+			table.releaseLock();
+		});
 	}
 
 	function editShipmentTable(table) {
 		if ((table.tableState !== ShipmentTableState.VIEWING) || !table.acquireLock()) return;
-		table.setEdit();
-		table.unchanged = table.toJson();
-		table.releaseLock();
+		table.requestLockPost((code) => {
+			if (code == 204) {
+				table.setEdit();
+				table.unchanged = table.toJson();
+			} else if (code == 403) {
+				alert("Отправка заблокирована другим пользователем");
+			} else {
+				showInternalError();
+			}
+			table.releaseLock();
+		});
 	}
 
 	function deleteShipmentTable(table) {
 		if ((table.tableState !== ShipmentTableState.VIEWING) || !table.acquireLock()) return;
-		table.requestDelete((success) => {
-			if (success) {
+		table.requestDelete((code) => {
+			if (code == 204) {
 				let shId = table.shipmentId.value;
 				delete createdShipmentTables[shId];
 				table.removeElements();
+			} else if (code == 403) {
+				alert("Отправка заблокирована другим пользователем");
+			} else {
+				showInternalError();
 			}
 			table.releaseLock();
 		});
@@ -672,6 +784,9 @@
 		});
 	}
 
+	function showInternalError() {
+		alert("Произошёл технический сбой");
+	}
 </script>
 
 </html>

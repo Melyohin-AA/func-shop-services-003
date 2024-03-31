@@ -79,9 +79,9 @@ internal class Shipment : ITableEntity
 		};
 	}
 	private static int GetJobjectValueAsInt32(JToken token) =>
-		(token != null) ? (int)token : 0;
+		(token?.Type == JTokenType.Integer) ? (int)token : 0;
 	private static long GetJobjectValueAsInt64(JToken token) =>
-		(token != null) ? (long)token : 0L;
+		(token?.Type == JTokenType.Integer) ? (long)token : 0L;
 
 	public JObject ToJson()
 	{
