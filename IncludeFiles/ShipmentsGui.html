@@ -145,10 +145,13 @@
 			let row0 = this.main.insertRow(-1);
 			let cell00 = row0.insertCell(-1);
 			let innerTable00 = this.newInnerTable(cell00);
+
 			let cell0_00 = innerTable00.insertRow(-1).insertCell(-1);
+			cell0_00.innerText = "Получатель";
+			let cell1_00 = innerTable00.insertRow(-1).insertCell(-1);
 			this.receiverName = this.newInput(cell0_00, 'Получатель', 'text');
 			this.commonInputs.push(this.receiverName);
-			let cell1_00 = innerTable00.insertRow(-1).insertCell(-1);
+			let cell2_00 = innerTable00.insertRow(-1).insertCell(-1);
 			this.receiverPhone = this.newInput(cell1_00, 'Телефон получателя', 'tel');
 			this.commonInputs.push(this.receiverPhone);
 			let cell01 = row0.insertCell(-1);
@@ -199,12 +202,14 @@
 			let cell13 = row1.insertCell(-1);
 			let innerTable13 = this.newInnerTable(cell13);
 			let cell0_13 = innerTable13.insertRow(-1).insertCell(-1);
+			cell0_13.innerText = "Заказчик";
+			let cell1_13 = innerTable13.insertRow(-1).insertCell(-1);
 			this.customerName = this.newInput(cell0_13, 'Заказчик', 'text');
 			this.commonInputs.push(this.customerName);
-			let cell1_13 = innerTable13.insertRow(-1).insertCell(-1);
+			let cell2_13 = innerTable13.insertRow(-1).insertCell(-1);
 			this.customerPhone = this.newInput(cell1_13, 'Телефон заказчика', 'tel');
 			this.commonInputs.push(this.customerPhone);
-			let cell2_13 = innerTable13.insertRow(-1).insertCell(-1);
+			let cell3_13 = innerTable13.insertRow(-1).insertCell(-1);
 			this.customerEmail = this.newInput(cell2_13, 'e-mail заказчика', 'email');
 			this.commonInputs.push(this.customerEmail);
 			let cell14 = row1.insertCell(-1);
