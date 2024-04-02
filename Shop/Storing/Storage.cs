@@ -110,6 +110,7 @@ internal class Storage
 
 	public async Task<int> DeleteShipment(string id)
 	{
+		// TODO: Fix error message showing when trying to delete an inexistent shipment
 		ShipmentLock shLock =
 			await MakeRequest(shipmentLockTable.GetEntityIfExistsAsync<ShipmentLock>(Partition, id));
 		(int acquireLockCode, Shipment shipment) = await AcquireShipmentLock(id, shLock);
