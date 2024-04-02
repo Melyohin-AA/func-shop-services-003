@@ -70,11 +70,3 @@ internal class EmailSender
 		await SendAsync(sendNotificationEmailstTo, notificationReason.ToString(), textBuilder.BuildPlainText(), textBuilder.BuildHTML());
 	}
 }
-
-internal enum NotificationReason
-{
-	ShipmentCreated,
-	ShipmentUpdated,
-	ShipmentDeleted
-
-}
