@@ -18,6 +18,7 @@ internal class EmailSender
 	private readonly Mailjet.Client.MailjetClient client;
 	private readonly ILogger logger;
 	private readonly string addressToSendFrom;
+	private readonly string zipPassword;
 
 	public EmailSender(ILogger logger)
 	{
@@ -25,6 +26,7 @@ internal class EmailSender
 		string apiSecret = Environment.GetEnvironmentVariable("MAILJET_API_SECRET");
 		this.logger = logger;
 		addressToSendFrom = Environment.GetEnvironmentVariable("SHOPSERVICES_MAILFROM");
+		zipPassword = Environment.GetEnvironmentVariable("SHOPSERVICES_MAILZIPPASSWORD") ?? "ss03";
 
 		if (apiKey is null or "" || apiSecret is null or "")
 		{
@@ -38,22 +40,51 @@ internal class EmailSender
 		string to,
 		string subject,
 		string plainTextContent,
-		string htmlContent)
+		string htmlContent,
+		bool sendContentAsAttachment = false)
 	{
 		if (client is null)
 		{
 			logger.LogError($"Can not send email to {to} on {subject}: api key and/or secret were not initialized properly");
 			return;
 		}
+		TransactionalEmailBuilder emailBuilder = new TransactionalEmailBuilder()
+			.WithFrom(new SendContact(addressToSendFrom))
+			.WithSubject(subject)
+			.WithTo(new SendContact(to));
+		if (sendContentAsAttachment)
+		{
+			try
+			{
+				const string attachmentName = "content.zip";
+				using Ionic.Zip.ZipFile zipfile = new(attachmentName, System.Text.Encoding.UTF8);
+				zipfile.Encryption = Ionic.Zip.EncryptionAlgorithm.WinZipAes256;
+				zipfile.Password = zipPassword;
+				zipfile.AddEntry("content.txt", plainTextContent);
+				
+				System.IO.MemoryStream memstream = new();
+				zipfile.Save(memstream);
+				memstream.Position = 0;
+				byte[] buf = new byte[memstream.Length];
+				await memstream.ReadAsync(buf, 0, (int)memstream.Length);
+				emailBuilder
+					.WithTextPart($"Contents of this message were moved to the attachment")
+					.WithAttachment(new Attachment(attachmentName, "application/zip", System.Convert.ToBase64String(buf)));
+			}
+			catch (Exception ex)
+			{
+				logger.LogError($"Could not compress contents into attachment due to error:\n{ex}");
+				throw;
+			}
 
-		// construct your email with builder
-		var email = new TransactionalEmailBuilder()
-			   .WithFrom(new SendContact(addressToSendFrom))
-			   .WithSubject(subject)
-			   .WithHtmlPart(htmlContent)
-			   .WithTextPart(plainTextContent)
-			   .WithTo(new SendContact(to))
-			   .Build();
+		}
+		else
+		{
+			emailBuilder
+			.WithHtmlPart(htmlContent)
+			.WithTextPart(plainTextContent);
+		}
+		TransactionalEmail email = emailBuilder.Build();
 		// invoke API to send email
 		TransactionalEmailResponse response = await client.SendTransactionalEmailAsync(email);
 	}

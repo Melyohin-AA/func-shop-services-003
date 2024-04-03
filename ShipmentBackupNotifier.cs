@@ -10,6 +10,7 @@ internal class ShipmentBackupNotifier
 	private EmailSender email;
 	public ShipmentBackupNotifier(ILogger logger, EmailSender email)
 	{
+		addressToSendNotificationsTo = System.Environment.GetEnvironmentVariable("SHOPSERVICES_MAILTO");
 		this.email = email;
 		this.logger = logger;
 	}
@@ -25,7 +26,13 @@ internal class ShipmentBackupNotifier
 			.AppendShipmentTableHeader()
 			.AppendShipmentRecord(shipment)
 			.AppendTableEnd();
-		await email.SendSingleAsync(addressToSendNotificationsTo, notificationReason.ToString(), textBuilder.BuildPlainText(), textBuilder.BuildHTML());
+		await email.SendSingleAsync(
+			addressToSendNotificationsTo,
+			notificationReason.ToString(),
+			textBuilder.BuildPlainText(),
+			textBuilder.BuildHTML(),
+			true
+		);
 	}
 }
 
