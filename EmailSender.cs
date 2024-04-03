@@ -23,14 +23,16 @@ internal class EmailSender
 	{
 		string apiKey = Environment.GetEnvironmentVariable("MAILJET_API_KEY");
 		string apiSecret = Environment.GetEnvironmentVariable("MAILJET_API_SECRET");
+		this.logger = logger;
 		addressToSendFrom = Environment.GetEnvironmentVariable("SHOPSERVICES_MAILFROM");
 
 		if (apiKey is null or "" || apiSecret is null or "")
 		{
-			throw new ArgumentException("MAILJET_API_KEY and MAILJET_API_SECRET envars must be set for email notifications to work");
+			logger.LogError("MAILJET_API_KEY and MAILJET_API_SECRET envars must be set for email notifications to work");
+			logger.LogError("Sending mails will fail");
+			return;
 		}
 		client = new(apiKey, apiSecret);
-		this.logger = logger;
 	}
 	public async Task SendSingleAsync(
 		string to,
@@ -38,10 +40,11 @@ internal class EmailSender
 		string plainTextContent,
 		string htmlContent)
 	{
-		MailjetRequest request = new MailjetRequest
+		if (client is null)
 		{
-			Resource = Send.Resource
-		};
+			logger.LogError($"Can not send email to {to} on {subject}: api key and/or secret were not initialized properly");
+			return;
+		}
 
 		// construct your email with builder
 		var email = new TransactionalEmailBuilder()
