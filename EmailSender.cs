@@ -5,6 +5,8 @@ using Mailjet.Client.Resources;
 using Mailjet.Client.TransactionalEmails;
 using Mailjet.Client.TransactionalEmails.Response;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ShopServices;
 
@@ -15,15 +17,13 @@ internal class EmailSender
 {
 	private readonly Mailjet.Client.MailjetClient client;
 	private readonly ILogger logger;
-	private readonly string sendNotificationEmailstTo;
-	private readonly string sendNotificationEmailsFrom;
+	private readonly string addressToSendFrom;
 
 	public EmailSender(ILogger logger)
 	{
 		string apiKey = Environment.GetEnvironmentVariable("MAILJET_API_KEY");
 		string apiSecret = Environment.GetEnvironmentVariable("MAILJET_API_SECRET");
-		sendNotificationEmailstTo = Environment.GetEnvironmentVariable("SHOPSERVICES_MAILTO");
-		sendNotificationEmailsFrom = Environment.GetEnvironmentVariable("SHOPSERVICES_MAILFROM");
+		addressToSendFrom = Environment.GetEnvironmentVariable("SHOPSERVICES_MAILFROM");
 
 		if (apiKey is null or "" || apiSecret is null or "")
 		{
@@ -32,7 +32,7 @@ internal class EmailSender
 		client = new(apiKey, apiSecret);
 		this.logger = logger;
 	}
-	public async Task SendAsync(
+	public async Task SendSingleAsync(
 		string to,
 		string subject,
 		string plainTextContent,
@@ -45,7 +45,7 @@ internal class EmailSender
 
 		// construct your email with builder
 		var email = new TransactionalEmailBuilder()
-			   .WithFrom(new SendContact(sendNotificationEmailsFrom))
+			   .WithFrom(new SendContact(addressToSendFrom))
 			   .WithSubject(subject)
 			   .WithHtmlPart(htmlContent)
 			   .WithTextPart(plainTextContent)
@@ -54,19 +54,5 @@ internal class EmailSender
 		// invoke API to send email
 		TransactionalEmailResponse response = await client.SendTransactionalEmailAsync(email);
 	}
-
-	public async Task SendBackupSingleShipmentAsync(
-		NotificationReason notificationReason,
-		ShopServices.Shop.Storing.Models.Shipment shipment)
-	{
-
-		EmailTextBuilder textBuilder = new();
-		textBuilder
-			.AppendLine($"This is a notification for: {notificationReason}")
-			.AppendTableStart()
-			.AppendShipmentTableHeader()
-			.AppendShipmentRecord(shipment)
-			.AppendTableEnd();
-		await SendAsync(sendNotificationEmailstTo, notificationReason.ToString(), textBuilder.BuildPlainText(), textBuilder.BuildHTML());
-	}
 }
+
