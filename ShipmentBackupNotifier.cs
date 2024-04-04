@@ -5,14 +5,17 @@ namespace ShopServices;
 
 internal class ShipmentBackupNotifier
 {
-	private readonly string addressToSendNotificationsTo;
+	private static readonly string addressToSendNotificationsTo = System.Environment.GetEnvironmentVariable("SHOPSERVICES_BACKUPS_MAIL");
 	private readonly ILogger logger;
 	private EmailSender email;
 	public ShipmentBackupNotifier(ILogger logger, EmailSender email)
 	{
-		addressToSendNotificationsTo = System.Environment.GetEnvironmentVariable("SHOPSERVICES_MAILTO");
-		this.email = email;
 		this.logger = logger;
+		if (addressToSendNotificationsTo is null or "") {
+			logger.LogError($"SHOPSERVICES_BACKUPS_MAIL must be set for email notifications to work.");
+			logger.LogError($"Notifications will fail.");
+		}
+		this.email = email;
 	}
 	public async Task SendBackupSingleShipmentAsync(
 		NotificationReason notificationReason,

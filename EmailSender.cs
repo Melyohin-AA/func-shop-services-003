@@ -17,20 +17,18 @@ internal class EmailSender
 {
 	private readonly Mailjet.Client.MailjetClient client;
 	private readonly ILogger logger;
-	private readonly string addressToSendFrom;
-	private readonly string zipPassword;
+	private static readonly string addressToSendFrom = Environment.GetEnvironmentVariable("SHOPSERVICES_MAILFROM");
+	private static readonly string zipPassword = Environment.GetEnvironmentVariable("SHOPSERVICES_MAILZIPPASSWORD");
 
 	public EmailSender(ILogger logger)
 	{
 		string apiKey = Environment.GetEnvironmentVariable("MAILJET_API_KEY");
 		string apiSecret = Environment.GetEnvironmentVariable("MAILJET_API_SECRET");
 		this.logger = logger;
-		addressToSendFrom = Environment.GetEnvironmentVariable("SHOPSERVICES_MAILFROM");
-		zipPassword = Environment.GetEnvironmentVariable("SHOPSERVICES_MAILZIPPASSWORD") ?? "ss03";
 
-		if (apiKey is null or "" || apiSecret is null or "")
+		if (apiKey is null or "" || apiSecret is null or "" || zipPassword is null or "")
 		{
-			logger.LogError("MAILJET_API_KEY and MAILJET_API_SECRET envars must be set for email notifications to work");
+			logger.LogError("MAILJET_API_KEY, MAILJET_API_SECRET and SHOPSERVICES_MAILZIPPASSWORD envars must be set for emails to work");
 			logger.LogError("Sending mails will fail");
 			return;
 		}
@@ -61,15 +59,15 @@ internal class EmailSender
 				zipfile.Encryption = Ionic.Zip.EncryptionAlgorithm.WinZipAes256;
 				zipfile.Password = zipPassword;
 				zipfile.AddEntry("content.txt", plainTextContent);
-				
 				System.IO.MemoryStream memstream = new();
 				zipfile.Save(memstream);
 				memstream.Position = 0;
-				byte[] buf = new byte[memstream.Length];
-				await memstream.ReadAsync(buf, 0, (int)memstream.Length);
 				emailBuilder
 					.WithTextPart($"Contents of this message were moved to the attachment")
-					.WithAttachment(new Attachment(attachmentName, "application/zip", System.Convert.ToBase64String(buf)));
+					.WithAttachment(new Attachment(
+						attachmentName,
+						"application/zip",
+						System.Convert.ToBase64String(memstream.GetBuffer(), 0, (int)memstream.Length)));
 			}
 			catch (Exception ex)
 			{
