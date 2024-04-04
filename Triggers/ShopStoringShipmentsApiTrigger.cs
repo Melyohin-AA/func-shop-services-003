@@ -47,6 +47,7 @@ internal static class ShopStoringShipmentsApiTrigger
 					data = bodyReader.ReadToEnd();
 				if (request.Method == "PUT")
 					releaseModLock = request.Query["release_lock"] == "true";
+
 			}
 			else
 			{
@@ -61,6 +62,7 @@ internal static class ShopStoringShipmentsApiTrigger
 				}
 			}
 			var storage = new Storage(partition, deviceId, logger);
+
 			switch (request.Method)
 			{
 				case "GET":
@@ -68,13 +70,14 @@ internal static class ShopStoringShipmentsApiTrigger
 						ProcessGetAll(storage, continuationToken) :
 						ProcessGet(storage, shipmentId);
 				case "POST":
-					return ProcessPost(storage, data);
+					return ProcessPost(storage, logger, data);
 				case "PUT":
-					return ProcessPut(storage, data, releaseModLock);
+					return ProcessPut(storage, logger, data, releaseModLock);
 				case "DELETE":
 					return ProcessDelete(storage, shipmentId);
 			}
-			return Task.FromResult<IActionResult>(new ContentResult() {
+			return Task.FromResult<IActionResult>(new ContentResult()
+			{
 				StatusCode = 500,
 				Content = $"Method '{request.Method}' is not actually supported",
 			});
@@ -82,7 +85,8 @@ internal static class ShopStoringShipmentsApiTrigger
 		catch (Exception ex)
 		{
 			logger.LogError(ex.ToString());
-			return Task.FromResult<IActionResult>(new ContentResult() {
+			return Task.FromResult<IActionResult>(new ContentResult()
+			{
 				StatusCode = 500,
 				Content = ex.Message,
 			});
@@ -107,7 +111,7 @@ internal static class ShopStoringShipmentsApiTrigger
 		return new OkObjectResult(jsonResult.ToString(Newtonsoft.Json.Formatting.None));
 	}
 
-	private static async Task<IActionResult> ProcessPost(Storage storage, string data)
+	private static async Task<IActionResult> ProcessPost(Storage storage, ILogger logger, string data)
 	{
 		if (string.IsNullOrEmpty(data))
 			return new BadRequestObjectResult("Body is required");
@@ -120,10 +124,11 @@ internal static class ShopStoringShipmentsApiTrigger
 			{ "id", shipment.Id },
 			{ "lastModTS", shipment.LastModTS },
 		};
+		await TryNotifyShipment(logger, shipment, Mailing.NotificationReason.ShipmentCreated);
 		return new OkObjectResult(jsonResult.ToString(Newtonsoft.Json.Formatting.None));
 	}
 
-	private static async Task<IActionResult> ProcessPut(Storage storage, string data, bool releaseLock)
+	private static async Task<IActionResult> ProcessPut(Storage storage, ILogger logger, string data, bool releaseLock)
 	{
 		if (string.IsNullOrEmpty(data))
 			return new BadRequestObjectResult("Body is required");
@@ -131,6 +136,7 @@ internal static class ShopStoringShipmentsApiTrigger
 		int code = await storage.PutShipment(shipment, releaseLock);
 		if (code != 204)
 			return new StatusCodeResult(code);
+		await TryNotifyShipment(logger, shipment, Mailing.NotificationReason.ShipmentUpdated);
 		return new OkObjectResult(shipment.LastModTS);
 	}
 
@@ -138,5 +144,21 @@ internal static class ShopStoringShipmentsApiTrigger
 	{
 		int code = await storage.DeleteShipment(shipmentId);
 		return new StatusCodeResult(code);
+	}
+
+	private static async Task<bool> TryNotifyShipment(ILogger logger, Shipment shipment, Mailing.NotificationReason sendReason)
+	{
+		try
+		{
+			Mailing.EmailSender email = new(logger);
+			Mailing.ShipmentBackupNotifier notifier = new(logger, email);
+			await notifier.SendBackupSingleShipmentAsync(sendReason, shipment);
+			return true;
+		}
+		catch (Exception ex)
+		{
+			logger.LogError($"Unexpected error while sending notification email {ex}");
+			return false;
+		}
 	}
 }
