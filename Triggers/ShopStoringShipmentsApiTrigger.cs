@@ -62,7 +62,6 @@ internal static class ShopStoringShipmentsApiTrigger
 				}
 			}
 			var storage = new Storage(partition, deviceId, logger);
-			EmailSender email = new(logger);
 
 			switch (request.Method)
 			{
@@ -125,7 +124,7 @@ internal static class ShopStoringShipmentsApiTrigger
 			{ "id", shipment.Id },
 			{ "lastModTS", shipment.LastModTS },
 		};
-		await TryNotifyShipment(logger, shipment, NotificationReason.ShipmentCreated);
+		await TryNotifyShipment(logger, shipment, Mailing.NotificationReason.ShipmentCreated);
 		return new OkObjectResult(jsonResult.ToString(Newtonsoft.Json.Formatting.None));
 	}
 
@@ -137,7 +136,7 @@ internal static class ShopStoringShipmentsApiTrigger
 		int code = await storage.PutShipment(shipment, releaseLock);
 		if (code != 204)
 			return new StatusCodeResult(code);
-		await TryNotifyShipment(logger, shipment, NotificationReason.ShipmentUpdated);
+		await TryNotifyShipment(logger, shipment, Mailing.NotificationReason.ShipmentUpdated);
 		return new OkObjectResult(shipment.LastModTS);
 	}
 
@@ -147,12 +146,12 @@ internal static class ShopStoringShipmentsApiTrigger
 		return new StatusCodeResult(code);
 	}
 
-	private static async Task<bool> TryNotifyShipment(ILogger logger, Shipment shipment, NotificationReason sendReason)
+	private static async Task<bool> TryNotifyShipment(ILogger logger, Shipment shipment, Mailing.NotificationReason sendReason)
 	{
 		try
 		{
-			EmailSender email = new(logger);
-			ShipmentBackupNotifier notifier = new(logger, email);
+			Mailing.EmailSender email = new(logger);
+			Mailing.ShipmentBackupNotifier notifier = new(logger, email);
 			await notifier.SendBackupSingleShipmentAsync(sendReason, shipment);
 			return true;
 		}

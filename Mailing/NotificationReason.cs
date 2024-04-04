@@ -1,4 +1,4 @@
-namespace ShopServices;
+namespace ShopServices.Mailing;
 
 internal enum NotificationReason
 {

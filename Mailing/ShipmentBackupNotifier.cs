@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace ShopServices;
+namespace ShopServices.Mailing;
 
 internal class ShipmentBackupNotifier
 {

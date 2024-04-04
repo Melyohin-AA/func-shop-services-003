@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ShopServices;
+namespace ShopServices.Mailing;
 
 /// <summary>
 /// Proxy for Mailjet, hopefully will be easy-ish to switch to a different provider if needed

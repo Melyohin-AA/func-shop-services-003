@@ -1,6 +1,6 @@
 using HtmlAgilityPack;
 
-namespace ShopServices;
+namespace ShopServices.Mailing;
 
 /// <summary>
 /// Constructs both HTML and plaintext message bodies for a notification email
