@@ -19,11 +19,13 @@ internal class EmailSender
 	private readonly ILogger logger;
 	private static readonly string addressToSendFrom = Environment.GetEnvironmentVariable("SHOPSERVICES_MAILFROM");
 	private static readonly string zipPassword = Environment.GetEnvironmentVariable("SHOPSERVICES_MAILZIPPASSWORD");
+	private static string apiKey = Environment.GetEnvironmentVariable("MAILJET_API_KEY");
+	private static string apiSecret = Environment.GetEnvironmentVariable("MAILJET_API_SECRET");
+
 
 	public EmailSender(ILogger logger)
 	{
-		string apiKey = Environment.GetEnvironmentVariable("MAILJET_API_KEY");
-		string apiSecret = Environment.GetEnvironmentVariable("MAILJET_API_SECRET");
+		
 		this.logger = logger;
 
 		if (apiKey is null or "" || apiSecret is null or "" || zipPassword is null or "")
