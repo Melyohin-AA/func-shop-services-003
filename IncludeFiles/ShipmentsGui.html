@@ -755,10 +755,13 @@
 	function deleteShipmentTable(table) {
 		if ((table.tableState !== ShipmentTableState.VIEWING) || !table.acquireLock()) return;
 		table.requestDelete((code) => {
-			if (code == 204) {
+			if ((code == 204) || (code == 404)) {
 				let shId = table.shipmentId.value;
 				delete createdShipmentTables[shId];
 				table.removeElements();
+				if (code == 404) {
+					alert("Отправка не существует");
+				}
 			} else if (code == 403) {
 				alert("Отправка заблокирована другим пользователем");
 			} else {
