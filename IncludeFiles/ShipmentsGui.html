@@ -62,6 +62,37 @@
 </head>
 
 <body onload='loadShipments()'>
+	<div id='grouptabswitcher'>
+		<table class="outer-table">
+			<tr>
+				<td>
+					Группа:
+				</td>
+				<td>
+					<button id="tab0"> Все</button>
+				</td>
+				<td>
+					<button id='tab1'>В РАБОТЕ</button>
+				</td>
+				<td>
+					<button id='tab2'>КРАСНАЯ</button>
+				</td>
+				<td>
+					<button id='tab3'>ЗАКАЗЫ ИЗ НАЛИЧИЯ</button>
+				</td>
+				<td>
+					<button id='tab4'>ОЖИДАНИЕ</button>
+				</td>
+				<td>
+					<button id='tab5'>ДОЛГИЙ ЗАКАЗ</button>
+				</td>
+				<td>
+					<button id='tab6'>ВЫПОЛНЕНО</button>
+				</td>
+			</tr>
+		</table>
+		<!-- 'В РАБОТЕ', 'КРАСНАЯ', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО' -->
+	</div>
 	<div id='createdShipmentArea'></div>
 	<p id='loadingLabel'>Загрузка отправок...</p>
 	<button id='createdShipmentLoadingButton' onclick='loadShipments()'>⟳ Обновить список отправок</button>
@@ -83,6 +114,14 @@
 </body>
 
 <script>
+	var selectedGroup = 0;
+	for (let i = 0; i < 7; i++) {
+		let button = document.getElementById("tab" + i);
+		button.onclick = () => {
+			selectedGroup = i;
+			loadShipments(selectedGroup);
+		}
+	}
 	//taken from https://stackoverflow.com/questions/51312980/how-to-get-and-set-cookies-in-javascript
 	function setCookie(name, value, days) {
 		let expires = "";
@@ -608,8 +647,8 @@
 			});
 		}
 
-		static requestGetAll(handler) {
-			let query = new URLSearchParams({ partition: 'p1', all: true }).toString();
+		static requestGetAll(handler, group) {
+			let query = new URLSearchParams({ partition: 'p1', all: true, group: group }).toString();
 			let url = `${SHIPMENTS_API_PATH}?${query}`;
 			fetch(url).then((response) => {
 				console.log(`Getting shipments:`, response);
@@ -633,7 +672,7 @@
 
 	var createdShipmentTables = {};
 
-	function loadShipments() {
+	function loadShipments(group) {
 		createdShipmentTables = {};
 		createdShipmentArea.innerHTML = null;
 		loadingLabel.style.display = null;
@@ -651,7 +690,8 @@
 			}
 			loadingLabel.style.display = 'none';
 			createdShipmentLoadingButton.disabled = false;
-		});
+		},
+			group);
 	}
 
 	function onInitialOrderIdEnter() {
