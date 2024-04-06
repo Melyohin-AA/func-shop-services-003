@@ -40,6 +40,7 @@ internal static class ShopStoringShipmentsApiTrigger
 			string shipmentId = null;
 			string continuationToken = null;
 			string data = null;
+			int? group = null;
 			bool releaseModLock = false;
 			if ((request.Method == "POST") || (request.Method == "PUT"))
 			{
@@ -51,6 +52,13 @@ internal static class ShopStoringShipmentsApiTrigger
 			}
 			else
 			{
+				if (
+					request.Query.TryGetValue("group", out Microsoft.Extensions.Primitives.StringValues values)
+					&& values.Count > 0
+					&& int.TryParse(values, out int parsedResult))
+				{
+					group = parsedResult;
+				}
 				getAll = request.Query["all"] == "true";
 				if (getAll)
 					continuationToken = request.Query["page"];
@@ -67,7 +75,7 @@ internal static class ShopStoringShipmentsApiTrigger
 			{
 				case "GET":
 					return getAll ?
-						ProcessGetAll(storage, continuationToken) :
+						ProcessGetAll(storage, continuationToken, group) :
 						ProcessGet(storage, shipmentId);
 				case "POST":
 					return ProcessPost(storage, logger, data);
@@ -102,9 +110,9 @@ internal static class ShopStoringShipmentsApiTrigger
 		return new OkObjectResult(jsonResult.ToString(Newtonsoft.Json.Formatting.None));
 	}
 
-	private static async Task<IActionResult> ProcessGetAll(Storage storage, string continuationToken)
+	private static async Task<IActionResult> ProcessGetAll(Storage storage, string continuationToken, int? group)
 	{
-		(int code, Storage.ShipmentPage shipmentPage) = await storage.GetShipments(continuationToken);
+		(int code, Storage.ShipmentPage shipmentPage) = await storage.GetShipments(continuationToken, group);
 		if (code != 200)
 			return new StatusCodeResult(code);
 		JObject jsonResult = shipmentPage.ToJson();

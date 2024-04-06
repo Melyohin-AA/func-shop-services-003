@@ -61,9 +61,40 @@
 	</style>
 </head>
 
-<body onload='loadShipments()'>
+<body>
+	<div id='grouptabswitcher'>
+		<table class="outer-table">
+			<tr>
+				<td>
+					Группа:</td>
+				<td>
+					<button id="tab0">Все</button>
+				</td>
+				<td>
+					<button id='tab1'>В РАБОТЕ</button>
+				</td>
+				<td>
+					<button id='tab2'>КРАСНАЯ</button>
+				</td>
+				<td>
+					<button id='tab3'>ЗАКАЗЫ ИЗ НАЛИЧИЯ</button>
+				</td>
+				<td>
+					<button id='tab4'>ОЖИДАНИЕ</button>
+				</td>
+				<td>
+					<button id='tab5'>ДОЛГИЙ ЗАКАЗ</button>
+				</td>
+				<td>
+					<button id='tab6'>ВЫПОЛНЕНО</button>
+				</td>
+			</tr>
+		</table>
+		<!-- 'В РАБОТЕ', 'КРАСНАЯ', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО' -->
+	</div>
 	<div id='createdShipmentArea'></div>
-	<p id='loadingLabel'>Загрузка отправок...</p>
+	<p id='loadingLabel' hidden>Загрузка отправок...</p>
+	<p id='instructionLabel'>Выберите группу или нажмите "Обновить список отправок"</p>
 	<button id='createdShipmentLoadingButton' onclick='loadShipments()'>⟳ Обновить список отправок</button>
 	<hr />
 	<div id='newShipmentArea'>
@@ -83,6 +114,14 @@
 </body>
 
 <script>
+	let selectedGroup = 0;
+	for (let i = 0; i < 7; i++) {
+		let button = document.getElementById("tab" + i);
+		button.onclick = () => {
+			selectedGroup = i;
+			loadShipments(selectedGroup);
+		}
+	}
 	//taken from https://stackoverflow.com/questions/51312980/how-to-get-and-set-cookies-in-javascript
 	function setCookie(name, value, days) {
 		let expires = "";
@@ -116,6 +155,14 @@
 			result.push(characters.charAt(Math.floor(Math.random() * charactersLength)));
 		}
 		return result.join("");
+	}
+
+	function toggleLoadingButtons(enabled) {
+		document.getElementById('createdShipmentLoadingButton').disabled = !enabled;
+		for (let i = 0; i < 7; i++) {
+			let button = document.getElementById("tab" + i);
+			button.disabled = !enabled;
+		}
 	}
 
 	const DEVICE_ID_KEY = "ss-device-id";
@@ -610,8 +657,12 @@
 			});
 		}
 
-		static requestGetAll(handler) {
-			let query = new URLSearchParams({ partition: 'p1', all: true }).toString();
+		static requestGetAll(handler, group) {
+			let queryobj = { partition: 'p1', all: true };
+			if (group !== undefined && group !== null && group !== 0) {
+				queryobj.group = group;
+			}
+			let query = new URLSearchParams(queryobj).toString();
 			let url = `${SHIPMENTS_API_PATH}?${query}`;
 			fetch(url).then((response) => {
 				console.log(`Getting shipments:`, response);
@@ -638,8 +689,9 @@
 	function loadShipments() {
 		createdShipmentTables = {};
 		createdShipmentArea.innerHTML = null;
-		loadingLabel.style.display = null;
-		createdShipmentLoadingButton.disabled = true;
+		loadingLabel.hidden = false;
+		instructionLabel.hidden = true;
+		toggleLoadingButtons(false);
 		ShipmentTable.requestGetAll((shipmentPage) => {
 			if ((shipmentPage != null) && (shipmentPage.shipments != null)) {
 				for (const shipment of shipmentPage.shipments) {
@@ -651,9 +703,10 @@
 					shipmentTable.nestElements(createdShipmentArea);
 				}
 			}
-			loadingLabel.style.display = 'none';
-			createdShipmentLoadingButton.disabled = false;
-		});
+			loadingLabel.hidden = true;
+			toggleLoadingButtons(true);
+		},
+			selectedGroup);
 	}
 
 	function onInitialOrderIdEnter() {
