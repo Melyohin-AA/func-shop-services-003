@@ -98,9 +98,7 @@
 	<button id='createdShipmentLoadingButton' onclick='loadShipments()'>⟳ Обновить список отправок</button>
 	<hr />
 	<div id='newShipmentArea'>
-		<button id='newShipmentButton' onclick='onInitialOrderIdEnter()'>Добавить отправку</button>
-		<input id='newShipmentOrderId' type='text' placeholder='N заказа'
-			onkeyup='if (event.keyCode == 13) onInitialOrderIdEnter()' />
+		<button id='newShipmentButton' onclick='onNewShipmentButtonClick()'>Добавить отправку</button>
 	</div>
 
 	<datalist id='shippingCompanyDatalist'>
@@ -216,7 +214,7 @@
 			this.comment0 = this.newInput(cell1_02, 'Коммент 0', 'text');
 			this.commonInputs.push(this.comment0);
 			let cell03 = row0.insertCell(-1);
-			this.orderIds = this.newInput(cell03, 'NN заказов', 'text'); //~
+			this.orderIds = this.newInput(cell03, 'NN заказов', 'text');
 			this.commonInputs.push(this.orderIds);
 			let cell04 = row0.insertCell(-1);
 			this.comment1 = this.newTextarea(cell04, 'Коммент 1', 'text');
@@ -246,7 +244,7 @@
 			this.deliveryAddress = this.newInput(cell1_11, 'Адрес доставки', 'text');
 			this.commonInputs.push(this.deliveryAddress);
 			let cell12 = row1.insertCell(-1);
-			this.trackCode = this.newInput(cell12, 'Трек-номер', 'text'); //~
+			this.trackCode = this.newInput(cell12, 'Трек-номер', 'text');
 			this.commonInputs.push(this.trackCode);
 			let cell13 = row1.insertCell(-1);
 			let innerTable13 = this.newInnerTable(cell13);
@@ -682,6 +680,28 @@
 				handler(null);
 			});
 		}
+
+		static fetchCustomerOrder(customerOrderId, handler) {
+			let query = new URLSearchParams({ code: customerOrderId }).toString();
+			let url = `/api/shop/moysklad/customer-order?${query}`;
+			fetch(url).then((response) => {
+				console.log(`Getting customer order '${customerOrderId}':`, response);
+				if (response.status != 200) {
+					handler(null);
+					return;
+				}
+				response.json().then((result) => {
+					console.log(result);
+					handler(result);
+				}).catch((error) => {
+					console.log(`Failed to parse customer order '${customerOrderId}' response:`, error);
+					handler(null);
+				});
+			}).catch((error) => {
+				console.log(`Failed to get customer order '${customerOrderId}':`, error);
+				handler(null);
+			});
+		}
 	}
 
 	var createdShipmentTables = {};
@@ -709,16 +729,29 @@
 			selectedGroup);
 	}
 
-	function onInitialOrderIdEnter() {
-		let orderId = newShipmentOrderId.value;
-		if (orderId.length == 0) return;
+	function onNewShipmentButtonClick() {
 		let shipmentTable = new ShipmentTable();
-		shipmentTable.orderIds.value = orderId;
-		newShipmentOrderId.value = null;
 		shipmentTable.setNew();
+		shipmentTable.orderIds.onkeyup = (event) => {
+			if (event.keyCode == 13) {
+				onOrderIdEnter(shipmentTable);
+			}
+		};
 		linkShipmentTableActionButtons(shipmentTable);
 		shipmentTable.nestElements(createdShipmentArea);
-		fetchCustomerOrder(orderId, (newData) => shipmentTable.updateMoyskladData(newData));
+	}
+
+	function onOrderIdEnter(shipmentTable) {
+		if (shipmentTable.moyskladData != null) return;
+		let orderId = shipmentTable.orderIds.value.trim().split(' ');
+		if ((orderId.length == 0) || (orderId[0].length == 0)) return;
+		if (shipmentTable.orderIds.disabled) return;
+		shipmentTable.orderIds.disabled = true;
+		orderId = orderId[0];
+		ShipmentTable.fetchCustomerOrder(orderId, (newData) => {
+			shipmentTable.updateMoyskladData(newData);
+			shipmentTable.orderIds.disabled = false;
+		});
 	}
 
 	function linkShipmentTableActionButtons(shipmentTable) {
@@ -823,27 +856,6 @@
 				showInternalError();
 			}
 			table.releaseLock();
-		});
-	}
-
-	function fetchCustomerOrder(customerOrderId, handler) {
-		let url = `/api/shop/moysklad/customer-order?code=${customerOrderId}`;
-		fetch(url).then((response) => {
-			console.log(`Getting customer order '${customerOrderId}':`, response);
-			if (response.status != 200) {
-				handler(null);
-				return;
-			}
-			response.json().then((result) => {
-				console.log(result);
-				handler(result);
-			}).catch((error) => {
-				console.log(`Failed to parse customer order '${customerOrderId}' response:`, error);
-				handler(null);
-			});
-		}).catch((error) => {
-			console.log(`Failed to get customer order '${customerOrderId}':`, error);
-			handler(null);
 		});
 	}
 
