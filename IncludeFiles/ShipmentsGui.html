@@ -360,8 +360,6 @@
 				input.disabled = false;
 			}
 			this.fillMoyskladDataTable(this.moyskladData);
-			//fetchCustomerOrder(this.orderIds.value, (newData) => this.updateMoyskladData(newData, true));
-			
 		}
 
 		setView() {
@@ -476,7 +474,9 @@
 			this.comment1.value = jobj.comments[1];
 			this.comment2.value = jobj.comments[2];
 			this.comment3.value = jobj.comments[3];
-			this.moyskladData = jobj.moyskladData;
+			if (this.moyskladData !== jobj.moyskladData) {
+				this.updateMoyskladData(jobj.moyskladData);
+			}
 		}
 
 		requestPost(handler) {
