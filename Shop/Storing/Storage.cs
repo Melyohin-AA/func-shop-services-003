@@ -163,7 +163,7 @@ internal class Storage
 			await MakeRequest(shipmentLockTable.DeleteEntityAsync(Partition, shipmentId, shLock.ETag));
 		if (deleteShipmentCode != 204)
 			Logger.LogError($"Failed to delete shipment lock '{shipmentId}' due to inexistence of its shipment");
-		return (400, null);
+		return (404, null);
 	}
 
 	public async Task<int> ReleaseShipmentLock(string shipmentId)
