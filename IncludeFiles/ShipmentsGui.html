@@ -482,7 +482,9 @@
 			this.comment1.value = comments[1];
 			this.comment2.value = comments[2];
 			this.comment3.value = comments[3];
-			this.moyskladData = jobj.moyskladData;
+			if (this.moyskladData !== jobj.moyskladData) {
+				this.updateMoyskladData(jobj.moyskladData);
+			}
 			this.lastModTS = jobj.lastModTS;
 			this.recolorToMatchState();
 		}
