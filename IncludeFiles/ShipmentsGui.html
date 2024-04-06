@@ -426,8 +426,6 @@
 		updateMoyskladData(data) {
 			this.moyskladData = data;
 			this.fillMoyskladDataTable(data);
-			this.state.selectedIndex = 1;
-			this.group.selectedIndex = 1;
 			if (data == null) return;
 			if (data.customer != null) {
 				this.receiverName.value = data.customer.name;
@@ -729,6 +727,8 @@
 
 	function onNewShipmentButtonClick() {
 		let shipmentTable = new ShipmentTable();
+		shipmentTable.state.selectedIndex = 1;
+		shipmentTable.group.selectedIndex = 1;
 		shipmentTable.deliveryCountry.value = "РФ";
 		shipmentTable.setNew();
 		shipmentTable.orderIds.onkeyup = (event) => {
