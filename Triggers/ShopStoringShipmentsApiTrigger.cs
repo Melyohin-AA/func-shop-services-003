@@ -55,8 +55,7 @@ internal static class ShopStoringShipmentsApiTrigger
 				if (
 					request.Query.TryGetValue("group", out Microsoft.Extensions.Primitives.StringValues values)
 					&& values.Count > 0
-					&& int.TryParse(values, out int parsedResult)
-					&& parsedResult is not 0)
+					&& int.TryParse(values, out int parsedResult))
 				{
 					group = parsedResult;
 				}
