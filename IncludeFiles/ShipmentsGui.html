@@ -435,10 +435,8 @@
 				this.customerName.value = data.customer.name;
 				this.customerEmail.value = data.customer.email;
 				this.customerPhone.value = data.customer.phone;
-				this.comment3.value = data.customer.actualAddressComment;
 			}
 			if (data.customerOrder != null) {
-				this.comment1.value = data.customerOrder.description;
 				this.shippingCompany.value = data.customerOrder.shippingCompany;
 			}
 			this.recolorToMatchState();
@@ -731,6 +729,7 @@
 
 	function onNewShipmentButtonClick() {
 		let shipmentTable = new ShipmentTable();
+		shipmentTable.deliveryCountry.value = "РФ";
 		shipmentTable.setNew();
 		shipmentTable.orderIds.onkeyup = (event) => {
 			if (event.keyCode == 13) {
