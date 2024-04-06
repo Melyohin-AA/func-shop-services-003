@@ -44,9 +44,13 @@ internal class Storage
 		Logger = logger;
 	}
 
-	public async Task<(int, ShipmentPage)> GetShipments(string continuationToken)
+	public async Task<(int, ShipmentPage)> GetShipments(string continuationToken, int? group)
 	{
-		string filter = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, Partition);
+		string filterPartition = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, Partition);
+		string filterGroup = group is int actualGroup ? TableQuery.GenerateFilterConditionForInt("Group", QueryComparisons.Equal, actualGroup) : null;
+		string filter = filterGroup is not null 
+			? TableQuery.CombineFilters(filterPartition, "and", filterGroup) 
+			: filterPartition;
 		try
 		{
 			AsyncPageable<Shipment> shipments = shipmentTable.QueryAsync<Shipment>(filter: filter, maxPerPage: 256);
@@ -146,7 +150,8 @@ internal class Storage
 		}
 		else
 		{
-			shLock = new ShipmentLock() {
+			shLock = new ShipmentLock()
+			{
 				PartitionKey = Partition,
 				ShipmentId = shipmentId,
 				EditorId = DeviceId,
