@@ -7,7 +7,7 @@ internal static class AuthorizationGui
 {
 	public static IActionResult Get()
 	{
-		//~ add clear sakey cookie button
+		// TODO: Add sakey cookie clear button
 		return new ContentResult() {
 			Content = 
 @"<!DOCTYPE html>

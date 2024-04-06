@@ -29,53 +29,55 @@ internal static class ShopStoringShipmentsApiTrigger
 				logger.LogInformation("Failed to auth");
 				return Task.FromResult<IActionResult>(new UnauthorizedResult());
 			}
-			//Azure.Core.TokenCredential cred = new Azure.Identity.DefaultAzureCredential();
-			//logger.LogInformation($"[{cred.GetToken}]");
+			string deviceId = Authorization.DeviceIdentity.GetDeviceId(request);
+			if (string.IsNullOrEmpty(deviceId))
+				return Task.FromResult<IActionResult>(new BadRequestObjectResult(
+					$"'{Authorization.DeviceIdentity.DeviceIdHeader}' header/cookie is required"));
 			string partition = request.Query["partition"];
 			if (string.IsNullOrEmpty(partition))
 				return Task.FromResult<IActionResult>(new BadRequestObjectResult("'partition' parameter is required"));
-			bool getAll;
-			string shipmentId;
-			string continuationToken;
-			string data;
+			bool getAll = false;
+			string shipmentId = null;
+			string continuationToken = null;
+			string data = null;
+			bool releaseModLock = false;
 			if ((request.Method == "POST") || (request.Method == "PUT"))
 			{
-				getAll = false;
-				shipmentId = continuationToken = null;
 				using (var bodyReader = new StreamReader(request.Body, Encoding.UTF8))
 					data = bodyReader.ReadToEnd();
+				if (request.Method == "PUT")
+					releaseModLock = request.Query["release_lock"] == "true";
+
 			}
 			else
 			{
 				getAll = request.Query["all"] == "true";
 				if (getAll)
-				{
-					shipmentId = null;
 					continuationToken = request.Query["page"];
-				}
 				else
 				{
 					shipmentId = request.Query["id"];
 					if (string.IsNullOrEmpty(shipmentId))
 						return Task.FromResult<IActionResult>(new BadRequestObjectResult("'id' parameter is required"));
-					continuationToken = null;
 				}
-				data = null;
 			}
+			var storage = new Storage(partition, deviceId, logger);
+
 			switch (request.Method)
 			{
 				case "GET":
 					return getAll ?
-						ProcessGetAll(partition, continuationToken, logger) :
-						ProcessGet(partition, shipmentId, logger);
+						ProcessGetAll(storage, continuationToken) :
+						ProcessGet(storage, shipmentId);
 				case "POST":
-					return ProcessPost(partition, data, logger);
+					return ProcessPost(storage, logger, data);
 				case "PUT":
-					return ProcessPut(partition, data, logger);
+					return ProcessPut(storage, logger, data, releaseModLock);
 				case "DELETE":
-					return ProcessDelete(partition, shipmentId, logger);
+					return ProcessDelete(storage, shipmentId);
 			}
-			return Task.FromResult<IActionResult>(new ContentResult() {
+			return Task.FromResult<IActionResult>(new ContentResult()
+			{
 				StatusCode = 500,
 				Content = $"Method '{request.Method}' is not actually supported",
 			});
@@ -83,93 +85,80 @@ internal static class ShopStoringShipmentsApiTrigger
 		catch (Exception ex)
 		{
 			logger.LogError(ex.ToString());
-			return Task.FromResult<IActionResult>(new ContentResult() {
+			return Task.FromResult<IActionResult>(new ContentResult()
+			{
 				StatusCode = 500,
 				Content = ex.Message,
 			});
 		}
 	}
 
-	private static async Task<IActionResult> ProcessGet(string partition, string shipmentId, ILogger logger)
+	private static async Task<IActionResult> ProcessGet(Storage storage, string shipmentId)
 	{
-		try
-		{
-			Shipment shipment = await Storage.GetShipment(partition, shipmentId);
-			JObject jsonResult = shipment.ToJson();
-			return new OkObjectResult(jsonResult.ToString(Newtonsoft.Json.Formatting.None));
-		}
-		catch (Azure.RequestFailedException ex)
-		{
-			logger.LogError($"Failed to get shipment '{partition}/{shipmentId}': {ex}");
-			return new StatusCodeResult(ex.Status);
-		}
+		(int code, Shipment shipment) = await storage.GetShipment(shipmentId);
+		if (code != 200)
+			return new StatusCodeResult(code);
+		JObject jsonResult = shipment.ToJson();
+		return new OkObjectResult(jsonResult.ToString(Newtonsoft.Json.Formatting.None));
 	}
 
-	private static async Task<IActionResult> ProcessGetAll(string partition, string continuationToken, ILogger logger)
+	private static async Task<IActionResult> ProcessGetAll(Storage storage, string continuationToken)
 	{
-		try
-		{
-			Storage.ShipmentPage shipmentPage = await Storage.GetShipments(partition, continuationToken);
-			JObject jsonResult = shipmentPage.ToJson();
-			return new OkObjectResult(jsonResult.ToString(Newtonsoft.Json.Formatting.None));
-		}
-		catch (Azure.RequestFailedException ex)
-		{
-			logger.LogError($"Failed to get shipments '{partition}/{continuationToken}': {ex}");
-			return new StatusCodeResult(ex.Status);
-		}
+		(int code, Storage.ShipmentPage shipmentPage) = await storage.GetShipments(continuationToken);
+		if (code != 200)
+			return new StatusCodeResult(code);
+		JObject jsonResult = shipmentPage.ToJson();
+		return new OkObjectResult(jsonResult.ToString(Newtonsoft.Json.Formatting.None));
 	}
 
-	private static async Task<IActionResult> ProcessPost(string partition, string data, ILogger logger)
+	private static async Task<IActionResult> ProcessPost(Storage storage, ILogger logger, string data)
 	{
 		if (string.IsNullOrEmpty(data))
 			return new BadRequestObjectResult("Body is required");
 		Shipment shipment = Shipment.FromJson(JObject.Parse(data));
 		shipment.NewId();
-		try
-		{
-			shipment.PartitionKey = partition;
-			Azure.Response storageResponse = await Storage.PostShipment(shipment);
-			if (storageResponse.Status == 200)
-				return new OkObjectResult(shipment.Id);
-			return new StatusCodeResult(storageResponse.Status);
-		}
-		catch (Azure.RequestFailedException ex)
-		{
-			logger.LogError($"Failed to post shipment '{partition}/{shipment.Id}': {ex}");
-			return new StatusCodeResult(ex.Status);
-		}
+		int code = await storage.PostShipment(shipment);
+		if (code != 204)
+			return new StatusCodeResult(code);
+		var jsonResult = new JObject() {
+			{ "id", shipment.Id },
+			{ "lastModTS", shipment.LastModTS },
+		};
+		await TryNotifyShipment(logger, shipment, Mailing.NotificationReason.ShipmentCreated);
+		return new OkObjectResult(jsonResult.ToString(Newtonsoft.Json.Formatting.None));
 	}
 
-	private static async Task<IActionResult> ProcessPut(string partition, string data, ILogger logger)
+	private static async Task<IActionResult> ProcessPut(Storage storage, ILogger logger, string data, bool releaseLock)
 	{
 		if (string.IsNullOrEmpty(data))
 			return new BadRequestObjectResult("Body is required");
 		Shipment shipment = Shipment.FromJson(JObject.Parse(data));
-		try
-		{
-			shipment.PartitionKey = partition;
-			Azure.Response storageResponse = await Storage.PutShipment(shipment);
-			return new StatusCodeResult(storageResponse.Status);
-		}
-		catch (Azure.RequestFailedException ex)
-		{
-			logger.LogError($"Failed to put shipment '{partition}/{shipment.Id}': {ex}");
-			return new StatusCodeResult(ex.Status);
-		}
+		int code = await storage.PutShipment(shipment, releaseLock);
+		if (code != 204)
+			return new StatusCodeResult(code);
+		await TryNotifyShipment(logger, shipment, Mailing.NotificationReason.ShipmentUpdated);
+		return new OkObjectResult(shipment.LastModTS);
 	}
 
-	private static async Task<IActionResult> ProcessDelete(string partition, string shipmentId, ILogger logger)
+	private static async Task<IActionResult> ProcessDelete(Storage storage, string shipmentId)
+	{
+		int code = await storage.DeleteShipment(shipmentId);
+		return new StatusCodeResult(code);
+	}
+
+	private static async Task<bool> TryNotifyShipment(ILogger logger, Shipment shipment, Mailing.NotificationReason sendReason)
 	{
 		try
 		{
-			Azure.Response storageResponse = await Storage.DeleteShipment(partition, shipmentId);
-			return new StatusCodeResult(storageResponse.Status);
+			Mailing.EmailSender email = new(logger);
+			Mailing.ShipmentBackupNotifier notifier = new(logger, email);
+			await notifier.SendBackupSingleShipmentAsync(sendReason, shipment);
+			return true;
 		}
-		catch (Azure.RequestFailedException ex)
+		catch (Exception ex)
 		{
-			logger.LogError($"Failed to delete shipment '{partition}/{shipmentId}': {ex}");
-			return new StatusCodeResult(ex.Status);
+			logger.LogError($"Unexpected error while sending notification email {ex}");
+			return false;
 		}
 	}
 }
