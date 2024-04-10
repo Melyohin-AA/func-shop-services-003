@@ -4,6 +4,7 @@ internal enum NotificationReason
 {
 	ShipmentCreated,
 	ShipmentUpdated,
-	ShipmentDeleted
+	ShipmentDeleted,
+	ShipmentBackupHourly
 
 }
