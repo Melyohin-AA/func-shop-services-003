@@ -39,7 +39,7 @@ internal class ShipmentBackupNotifier
 			.AppendTableEnd();
 		await email.SendSingleAsync(
 			addressToSendNotificationsTo,
-			$"{notificationReason}_{now.ToString("dd.MM.yyyy_hh.mm.ss")}",
+			$"{now.ToString("yymmdd-hhmmss")}-{notificationReason}-{shipment.Id}",
 			textBuilder.BuildPlainText(),
 			textBuilder.BuildHTML(),
 			true
@@ -66,7 +66,7 @@ internal class ShipmentBackupNotifier
 		textBuilder.AppendTableEnd();
 		await email.SendSingleAsync(
 			addressToSendNotificationsTo,
-			$"{notificationReason}_{now.ToString("dd.MM.yyyy_hh.mm.ss")}",
+			$"{now.ToString("yymmdd-hhmmss")}-{notificationReason}",
 			textBuilder.BuildPlainText(),
 			textBuilder.BuildHTML(),
 			true
