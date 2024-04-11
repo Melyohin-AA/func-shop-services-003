@@ -21,7 +21,7 @@ internal static class PeriodicBackupTriggers
 	[FunctionName("HourlyBackupTrigger")]
 	public static async Task RunHourly(
 		//todo: adjust for timezones
-		[TimerTrigger("0 0 9-23 * * *")] TimerInfo timer,
+		[TimerTrigger("0 0 12-23,0-2 * * *")] TimerInfo timer,
 		// [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "api/test-bulk-backups-hourly")] HttpRequest request,
 		[Blob("https://rgshopservices003b728.blob.core.windows.net/periodic-backup-timestamps/hourly.txt")] Azure.Storage.Blobs.Specialized.BlockBlobClient blob,
 		ILogger logger)
@@ -57,7 +57,7 @@ internal static class PeriodicBackupTriggers
 	{
 		Encoding utf8 = Encoding.UTF8;
 		DateTimeOffset now = DateTimeOffset.UtcNow;
-		DateTimeOffset ts = DateTimeOffset.UtcNow;
+		DateTimeOffset ts = now;
 		using (Stream blobRead = await blob.OpenReadAsync())
 		{
 			byte[] buf = new byte[blobRead.Length];
@@ -70,17 +70,30 @@ internal static class PeriodicBackupTriggers
 			}
 			ts = DateTimeOffset.FromUnixTimeMilliseconds(tslong);
 		}
-		Shop.Storing.Storage storage = new("p1", "0000", logger);
+		Shop.Storing.Storage storage = new("p1", null, logger);
 		Mailing.EmailSender email = new(logger);
 		Mailing.ShipmentBackupNotifier notifier = new(logger, email);
 
 		List<Shop.Storing.Models.Shipment> allShipments = new();
-		string continuationToken = "1";
+		string continuationToken = null;
 		int status;
 		Shop.Storing.Storage.ShipmentPage page;
-		(status, page) = await storage.GetShipmentsModifiedAfter(continuationToken, ts);
-		logger.LogWarning($"{status}, {page.Shipments?.Length}");
-		allShipments.AddRange(page.Shipments);
+
+		//bounded loop in case something breaks really bad to avoid racking up storage debt infinitely
+		const int NUM_ITERATIONS = 2048;
+		for (int i = 0; i < NUM_ITERATIONS; i++)
+		{
+			(status, page) = await storage.GetShipmentsModifiedAfter(continuationToken, ts);
+			logger.LogDebug($"Page {page} fetched with status {status}");
+			allShipments.AddRange(page.Shipments);
+			continuationToken = page.ContinuationToken;
+			if (continuationToken is null) break;
+			if (i == NUM_ITERATIONS - 1)
+			{
+				logger.LogWarning($"BULK BACKUP HAD A BAD LOOP! Either something broke or there are more than {NUM_ITERATIONS} filtered pages. If it's the latter, update {nameof(PeriodicBackupTriggers)}.");
+			}
+		}
+
 		if (allShipments.Count == 0)
 		{
 			logger.LogInformation($"No changes since last backup; skipping");
@@ -90,7 +103,6 @@ internal static class PeriodicBackupTriggers
 		await notifier.SendBackupBulkShipmentsAsync(notificationReason, allShipments);
 		try
 		{
-
 			using Stream blobWrite = await blob.OpenWriteAsync(true);
 			string text = now.ToUnixTimeMilliseconds().ToString();
 			await blobWrite.WriteAsync(utf8.GetBytes(text));

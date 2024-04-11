@@ -31,7 +31,6 @@ internal class Shipment : ITableEntity
 	comments
 	moyskladData
 	lastModTS
-	backedUp
 	*/
 
 	[IgnoreDataMember]

@@ -80,7 +80,7 @@ internal class Storage
 		string continuationToken,
 		DateTimeOffset timestamp)
 	{
-		string filterTime = TableQuery.GenerateFilterConditionForLong("LastModTS", QueryComparisons.GreaterThan, timestamp.ToUnixTimeMilliseconds());
+		string filterTime = TableQuery.GenerateFilterConditionForLong("LastModTS", QueryComparisons.GreaterThanOrEqual, timestamp.ToUnixTimeMilliseconds());
 		return await GetShipmentsWithFilters(continuationToken, new string[] { filterTime });
 	}
 	public async Task<(int, Shipment)> GetShipment(string id)

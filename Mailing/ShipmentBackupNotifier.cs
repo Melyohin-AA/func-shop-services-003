@@ -29,6 +29,7 @@ internal class ShipmentBackupNotifier
 		if (email is null)
 		{
 			logger.LogError($"Cannot send notification for {notificationReason}, {shipment.Id}: Notifier not initialized");
+			return;
 		}
 		EmailTextBuilder textBuilder = new();
 		textBuilder
@@ -53,6 +54,7 @@ internal class ShipmentBackupNotifier
 		if (email is null)
 		{
 			logger.LogError($"Cannot send bulk notification for {notificationReason}: Notifier not initialized");
+			return;
 		}
 		EmailTextBuilder textBuilder = new();
 		textBuilder
