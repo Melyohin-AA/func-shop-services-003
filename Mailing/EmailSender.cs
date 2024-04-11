@@ -56,7 +56,7 @@ internal class EmailSender
 		{
 			try
 			{
-				const string attachmentName = "content.zip";
+				string attachmentName = $"{subject}.zip";
 				using Ionic.Zip.ZipFile zipfile = new(attachmentName, System.Text.Encoding.UTF8);
 				zipfile.Encryption = Ionic.Zip.EncryptionAlgorithm.WinZipAes256;
 				zipfile.Password = zipPassword;

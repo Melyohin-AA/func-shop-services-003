@@ -112,7 +112,10 @@ internal static class ShopStoringShipmentsApiTrigger
 
 	private static async Task<IActionResult> ProcessGetAll(Storage storage, string continuationToken, int? group)
 	{
-		(int code, Storage.ShipmentPage shipmentPage) = await storage.GetShipments(continuationToken, group);
+		(int code, Storage.ShipmentPage shipmentPage) =
+			group is int actualGroup ?
+			await storage.GetShipmentsInGroup(continuationToken, actualGroup) :
+			await storage.GetShipments(continuationToken);
 		if (code != 200)
 			return new StatusCodeResult(code);
 		JObject jsonResult = shipmentPage.ToJson();

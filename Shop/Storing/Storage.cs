@@ -44,13 +44,15 @@ internal class Storage
 		Logger = logger;
 	}
 
-	public async Task<(int, ShipmentPage)> GetShipments(string continuationToken, int? group)
+	private async Task<(int, ShipmentPage)> GetShipmentsWithFilters(string continuationToken, string[] additionalFilters)
 	{
 		string filterPartition = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, Partition);
-		string filterGroup = group is int actualGroup ? TableQuery.GenerateFilterConditionForInt("Group", QueryComparisons.Equal, actualGroup) : null;
-		string filter = filterGroup is not null 
-			? TableQuery.CombineFilters(filterPartition, "and", filterGroup) 
-			: filterPartition;
+		string filter = filterPartition;
+		foreach (string addFilter in additionalFilters)
+		{
+			if (addFilter is null) continue;
+			filter = TableQuery.CombineFilters(filter, "and", addFilter);
+		}
 		try
 		{
 			AsyncPageable<Shipment> shipments = shipmentTable.QueryAsync<Shipment>(filter: filter, maxPerPage: 256);
@@ -65,6 +67,22 @@ internal class Storage
 		return (200, new ShipmentPage());
 	}
 
+	public async Task<(int, ShipmentPage)> GetShipments(string continuationToken)
+		=> await GetShipmentsWithFilters(continuationToken, new string[] { });
+	public async Task<(int, ShipmentPage)> GetShipmentsInGroup(
+		string continuationToken,
+		int group)
+	{
+		string filterGroup = TableQuery.GenerateFilterConditionForInt("Group", QueryComparisons.Equal, group);
+		return await GetShipmentsWithFilters(continuationToken, new string[] { filterGroup });
+	}
+	public async Task<(int, ShipmentPage)> GetShipmentsModifiedAfter(
+		string continuationToken,
+		DateTimeOffset timestamp)
+	{
+		string filterTime = TableQuery.GenerateFilterConditionForLong("LastModTS", QueryComparisons.GreaterThanOrEqual, timestamp.ToUnixTimeMilliseconds());
+		return await GetShipmentsWithFilters(continuationToken, new string[] { filterTime });
+	}
 	public async Task<(int, Shipment)> GetShipment(string id)
 	{
 		try

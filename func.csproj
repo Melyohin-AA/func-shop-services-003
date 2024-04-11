@@ -10,6 +10,7 @@
     <PackageReference Include="HtmlSanitizer" Version="8.0.843" />
     <PackageReference Include="Mailjet.API" Version="3.0.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Sql" Version="3.0.461" />
+    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Storage.Blobs" Version="5.2.2" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.2.0" />
   </ItemGroup>
   <ItemGroup>
