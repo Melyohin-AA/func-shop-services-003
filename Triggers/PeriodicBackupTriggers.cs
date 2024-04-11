@@ -84,7 +84,7 @@ internal static class PeriodicBackupTriggers
 		for (int i = 0; i < NUM_ITERATIONS; i++)
 		{
 			(status, page) = await storage.GetShipmentsModifiedAfter(continuationToken, ts);
-			logger.LogDebug($"Page {page} fetched with status {status}");
+			logger.LogDebug($"Page {i} fetched with status {status}");
 			allShipments.AddRange(page.Shipments);
 			continuationToken = page.ContinuationToken;
 			if (continuationToken is null) break;
