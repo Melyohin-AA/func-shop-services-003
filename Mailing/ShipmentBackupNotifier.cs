@@ -23,7 +23,7 @@ internal class ShipmentBackupNotifier
 	}
 	public async Task SendBackupSingleShipmentAsync(
 		NotificationReason notificationReason,
-        Shop.Storing.Models.Shipment shipment)
+		Shop.Storing.Models.Shipment shipment)
 	{
 		DateTime now = DateTime.UtcNow;
 		if (email is null)
@@ -40,7 +40,7 @@ internal class ShipmentBackupNotifier
 			.AppendTableEnd();
 		await email.SendSingleAsync(
 			addressToSendNotificationsTo,
-			$"{now.ToString("yymmdd-hhmmss")}-{notificationReason}-{shipment.Id}",
+			$"{now:yymmdd-hhmmss}-{now.Millisecond}-{StringifyReasonForTopic(notificationReason)}-{shipment.Id}",
 			textBuilder.BuildPlainText(),
 			textBuilder.BuildHTML(),
 			true
@@ -68,11 +68,21 @@ internal class ShipmentBackupNotifier
 		textBuilder.AppendTableEnd();
 		await email.SendSingleAsync(
 			addressToSendNotificationsTo,
-			$"{now.ToString("yymmdd-hhmmss")}-{notificationReason}",
+			$"{now:yymmdd-hhmmss}-{now.Millisecond}-{StringifyReasonForTopic(notificationReason)}",
 			textBuilder.BuildPlainText(),
 			textBuilder.BuildHTML(),
 			true
 		);
+	}
+	private static string StringifyReasonForTopic(NotificationReason reason) => reason switch
+	{
+		NotificationReason.ShipmentCreated => "new",
+		NotificationReason.ShipmentUpdated => "upd",
+		NotificationReason.ShipmentDeleted => "del",
+		NotificationReason.ShipmentBackupHourly => "hourly",
+		NotificationReason.ShipmentBackupDaily => "daily",
+		NotificationReason.ShipmentBackupWeekly => "weekly",
+		_ => ((int)reason).ToString()
 	}
 }
 

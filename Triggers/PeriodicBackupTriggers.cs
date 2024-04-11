@@ -57,7 +57,7 @@ internal static class PeriodicBackupTriggers
 	{
 		Encoding utf8 = Encoding.UTF8;
 		DateTimeOffset now = DateTimeOffset.UtcNow;
-		DateTimeOffset ts = now;
+		DateTimeOffset ts;
 		using (Stream blobRead = await blob.OpenReadAsync())
 		{
 			byte[] buf = new byte[blobRead.Length];
