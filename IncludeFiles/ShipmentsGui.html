@@ -31,6 +31,10 @@
 			background-color: gold;
 		}
 
+		.selected-tab {
+			background-color: gold;
+		}
+
 		.outer-table {
 			border-collapse: collapse;
 		}
@@ -113,11 +117,17 @@
 
 <script>
 	let selectedGroup = 0;
+	function getTabButton(index) { return document.getElementById("tab" + index); }
 	for (let i = 0; i < 7; i++) {
-		let button = document.getElementById("tab" + i);
+		let button = getTabButton(i);
 		button.onclick = () => {
 			selectedGroup = i;
 			loadShipments(selectedGroup);
+			for (let j = 0; j < 7; j++) {
+				let button1 = getTabButton(j);
+				button1.classList.toggle("selected-tab", button1 === button);
+			}
+
 		}
 	}
 	//taken from https://stackoverflow.com/questions/51312980/how-to-get-and-set-cookies-in-javascript
