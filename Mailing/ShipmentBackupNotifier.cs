@@ -1,15 +1,17 @@
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
-using System;
 
 namespace ShopServices.Mailing;
 
 internal class ShipmentBackupNotifier
 {
-	private static readonly string addressToSendNotificationsTo = System.Environment.GetEnvironmentVariable("SHOPSERVICES_BACKUPS_MAIL");
+	private static readonly string addressToSendNotificationsTo = Environment.GetEnvironmentVariable("SHOPSERVICES_BACKUPS_MAIL");
+
 	private readonly ILogger logger;
 	private readonly EmailSender email;
+
 	public ShipmentBackupNotifier(ILogger logger, EmailSender email)
 	{
 		this.logger = logger;
@@ -21,6 +23,7 @@ internal class ShipmentBackupNotifier
 		}
 		this.email = email;
 	}
+
 	public async Task SendBackupSingleShipmentAsync(
 		NotificationReason notificationReason,
 		Shop.Storing.Models.Shipment shipment)
@@ -46,6 +49,7 @@ internal class ShipmentBackupNotifier
 			true
 		);
 	}
+
 	public async Task SendBackupBulkShipmentsAsync(
 		NotificationReason notificationReason,
 		IEnumerable<Shop.Storing.Models.Shipment> shipments)
@@ -74,6 +78,7 @@ internal class ShipmentBackupNotifier
 			true
 		);
 	}
+
 	private static string StringifyReasonForTopic(NotificationReason reason) => reason switch
 	{
 		NotificationReason.ShipmentCreated => "new",
@@ -83,6 +88,5 @@ internal class ShipmentBackupNotifier
 		NotificationReason.ShipmentBackupDaily => "daily",
 		NotificationReason.ShipmentBackupWeekly => "weekly",
 		_ => ((int)reason).ToString()
-	}
+	};
 }
-
