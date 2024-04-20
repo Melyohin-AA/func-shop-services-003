@@ -21,7 +21,7 @@ internal static class PeriodicBackupTriggers
 	[FunctionName("HourlyBackupTrigger")]
 	public static async Task RunHourly(
 		//todo: adjust for timezones
-		[TimerTrigger("0 0 12-23,0-2 * * *")] TimerInfo timer,
+		[TimerTrigger("0 0 6-20 * * *")] TimerInfo timer,
 		// [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "api/test-bulk-backups-hourly")] HttpRequest request,
 		[Blob("https://rgshopservices003b728.blob.core.windows.net/periodic-backup-timestamps/hourly.txt")] Azure.Storage.Blobs.Specialized.BlockBlobClient blob,
 		ILogger logger)
