@@ -281,6 +281,8 @@
 				null
 			);
 			this.commonInputs.push(this.group);
+			this.receiverPhone.onblur = () => this.sanitizePhoneNumbers();
+			this.customerPhone.onblur = () => this.sanitizePhoneNumbers();
 			this.initActionRows();
 			this.moyskladDataTable = this.newOuterTable();
 			this.moyskladData = null;
@@ -484,6 +486,17 @@
 			this.oldSelectClasses = [statusClass];
 		}
 
+		sanitizePhoneNumbers() {
+			if (this.tableState != ShipmentTableState.CREATION && this.tableState != ShipmentTableState.EDITING) {
+				return;
+			}
+			console.log("sanpre", this.toJson());
+			this.receiverPhone.value = this.receiverPhone.value.replace("+", "");
+			this.customerPhone.value = this.customerPhone.value.replace("+", "");
+			console.log(this.toJson());
+			console.log("sanpost", this.toJson());
+		}
+
 		undoChanges() {
 			if (this.unchanged != null) {
 				this.fromJson(this.unchanged);
@@ -510,7 +523,7 @@
 				comments: [this.comment0.value, this.comment1.value, this.comment2.value, this.comment3.value],
 				moyskladData: this.moyskladData,
 				lastModTS: this.lastModTS,
-			}
+			};
 		}
 
 		fromJson(jobj) {
@@ -601,7 +614,6 @@
 			let url = `${SHIPMENTS_API_PATH}?${query}`;
 			let shId = this.shipmentId.value;
 			let body = JSON.stringify(this.toJson());
-			console.log(body);
 			fetch(url, { method: 'PUT', body: body }).then((response) => {
 				console.log(`Putting shipment '${shId}':`, response);
 				if (response.status == 200) {
