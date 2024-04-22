@@ -850,6 +850,7 @@
 	}
 
 	function deleteShipmentTable(table) {
+		if (!confirm("Удалить отправку?")) return;
 		if ((table.tableState !== ShipmentTableState.VIEWING) || !table.acquireLock()) return;
 		table.requestDelete((code) => {
 			if ((code == 204) || (code == 404)) {
