@@ -438,14 +438,26 @@
 			this.fillMoyskladDataTable(data);
 			if (data == null) return;
 			if (data.customer != null) {
-				this.receiverName.value = data.customer.name;
-				this.receiverPhone.value = data.customer.phone;
-				this.customerName.value = data.customer.name;
-				this.customerEmail.value = data.customer.email;
-				this.customerPhone.value = data.customer.phone;
+				if (!this.receiverName.value) {
+					this.receiverName.value = data.customer.name;
+				}
+				if (!this.receiverPhone.value) {
+					this.receiverPhone.value = data.customer.phone;
+				}
+				if (!this.customerName.value) {
+					this.customerName.value = data.customer.name;
+				}
+				if (!this.customerEmail.value) {
+					this.customerEmail.value = data.customer.email;
+				}
+				if (!this.customerPhone.value) {
+					this.customerPhone.value = data.customer.phone;
+				}
 			}
 			if (data.customerOrder != null) {
-				this.shippingCompany.value = data.customerOrder.shippingCompany;
+				if (!this.shippingCompany.value) {
+					this.shippingCompany.value = data.customerOrder.shippingCompany;
+				}
 			}
 			this.recolorToMatchState();
 		}
@@ -723,6 +735,7 @@
 				for (const shipment of shipmentPage.shipments) {
 					let shipmentTable = new ShipmentTable();
 					shipmentTable.setView();
+					addOnOrderIdEnterEvent(shipmentTable);
 					linkShipmentTableActionButtons(shipmentTable);
 					shipmentTable.fromJson(shipment);
 					createdShipmentTables[shipmentTable.shipmentId.value] = shipmentTable;
@@ -741,13 +754,17 @@
 		shipmentTable.group.selectedIndex = 1;
 		shipmentTable.deliveryCountry.value = "РФ";
 		shipmentTable.setNew();
+		addOnOrderIdEnterEvent(shipmentTable);
+		linkShipmentTableActionButtons(shipmentTable);
+		shipmentTable.nestElements(createdShipmentArea);
+	}
+
+	function addOnOrderIdEnterEvent(shipmentTable) {
 		shipmentTable.orderIds.onkeyup = (event) => {
 			if (event.keyCode == 13) {
 				onOrderIdEnter(shipmentTable);
 			}
 		};
-		linkShipmentTableActionButtons(shipmentTable);
-		shipmentTable.nestElements(createdShipmentArea);
 	}
 
 	function onOrderIdEnter(shipmentTable) {
