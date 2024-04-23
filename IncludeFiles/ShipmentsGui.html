@@ -69,8 +69,7 @@
 	<div id='grouptabswitcher'>
 		<table class="outer-table">
 			<tr>
-				<td>
-					Группа:</td>
+				<td>Группа:</td>
 				<td>
 					<button id="tab0">Все</button>
 				</td>
@@ -81,20 +80,23 @@
 					<button id='tab2'>КРАСНАЯ</button>
 				</td>
 				<td>
-					<button id='tab3'>ЗАКАЗЫ ИЗ НАЛИЧИЯ</button>
+					<button id='tab3'>ПОЧТА</button>
 				</td>
 				<td>
-					<button id='tab4'>ОЖИДАНИЕ</button>
+					<button id='tab4'>ЗАКАЗЫ ИЗ НАЛИЧИЯ</button>
 				</td>
 				<td>
-					<button id='tab5'>ДОЛГИЙ ЗАКАЗ</button>
+					<button id='tab5'>ОЖИДАНИЕ</button>
 				</td>
 				<td>
-					<button id='tab6'>ВЫПОЛНЕНО</button>
+					<button id='tab6'>ДОЛГИЙ ЗАКАЗ</button>
+				</td>
+				<td>
+					<button id='tab7'>ВЫПОЛНЕНО</button>
 				</td>
 			</tr>
 		</table>
-		<!-- 'В РАБОТЕ', 'КРАСНАЯ', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО' -->
+		<!-- 'В РАБОТЕ', 'КРАСНАЯ', 'ПОЧТА', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО' -->
 	</div>
 	<div id='createdShipmentArea'></div>
 	<p id='loadingLabel' hidden>Загрузка отправок...</p>
@@ -116,20 +118,24 @@
 </body>
 
 <script>
+	const GROUP_COUNT = 8;
+
 	let selectedGroup = 0;
+
 	function getTabButton(index) { return document.getElementById("tab" + index); }
-	for (let i = 0; i < 7; i++) {
+
+	for (let i = 0; i < GROUP_COUNT; i++) {
 		let button = getTabButton(i);
 		button.onclick = () => {
 			selectedGroup = i;
 			loadShipments(selectedGroup);
-			for (let j = 0; j < 7; j++) {
+			for (let j = 0; j < GROUP_COUNT; j++) {
 				let button1 = getTabButton(j);
 				button1.classList.toggle("selected-tab", button1 === button);
 			}
-
 		}
 	}
+
 	//taken from https://stackoverflow.com/questions/51312980/how-to-get-and-set-cookies-in-javascript
 	function setCookie(name, value, days) {
 		let expires = "";
@@ -167,7 +173,7 @@
 
 	function toggleLoadingButtons(enabled) {
 		document.getElementById('createdShipmentLoadingButton').disabled = !enabled;
-		for (let i = 0; i < 7; i++) {
+		for (let i = 0; i < GROUP_COUNT; i++) {
 			let button = document.getElementById("tab" + i);
 			button.disabled = !enabled;
 		}
@@ -277,7 +283,7 @@
 			let cell0_15 = innerTable15.insertRow(-1).insertCell(-1);
 			this.group = this.newSelect(
 				cell0_15,
-				['--Группа--', 'В РАБОТЕ', 'КРАСНАЯ', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО'],
+				['--Группа--', 'В РАБОТЕ', 'КРАСНАЯ', 'ПОЧТА', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО'],
 				null
 			);
 			this.commonInputs.push(this.group);
