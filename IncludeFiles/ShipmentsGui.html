@@ -243,14 +243,13 @@
 			let innerTable10 = this.newInnerTable(cell10);
 			let cell0_10 = innerTable10.insertRow(-1).insertCell(-1);
 			this.shipmentId = this.newInput(cell0_10, 'N отправки', 'text');
-			this.shipmentId.disabled = true;
+			this.shipmentId.readOnly = true;
 			let cell1_10 = innerTable10.insertRow(-1).insertCell(-1);
 			this.state = this.newSelect(
 				cell1_10,
 				['--Статус--', 'ОЖИДАЕТ СБОРКУ', 'НА СБОРКЕ', 'СОБРАН', 'УПАКОВАН', 'ОТПРАВЛЕН'],
 				this.selectClassesStatus
 			);
-			this.commonInputs.push(this.state);
 			let cell11 = row1.insertCell(-1);
 			let innerTable11 = this.newInnerTable(cell11);
 			let cell0_11 = innerTable11.insertRow(-1).insertCell(-1);
@@ -286,7 +285,6 @@
 				['--Группа--', 'В РАБОТЕ', 'КРАСНАЯ', 'ПОЧТА', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО'],
 				null
 			);
-			this.commonInputs.push(this.group);
 			this.initActionRows();
 			this.moyskladDataTable = this.newOuterTable();
 			this.moyskladData = null;
@@ -394,8 +392,10 @@
 			this.actionRow_new.style.display = null;
 			this.actionRow_edit.style.display = 'none';
 			this.actionRow_view.style.display = 'none';
+			this.state.disabled = false;
+			this.group.disabled = false;
 			for (const input of this.commonInputs) {
-				input.disabled = false;
+				input.readOnly = false;
 			}
 		}
 
@@ -406,8 +406,10 @@
 			this.actionRow_new.style.display = 'none';
 			this.actionRow_edit.style.display = null;
 			this.actionRow_view.style.display = 'none';
+			this.state.disabled = false;
+			this.group.disabled = false;
 			for (const input of this.commonInputs) {
-				input.disabled = false;
+				input.readOnly = false;
 			}
 		}
 
@@ -418,8 +420,10 @@
 			this.actionRow_new.style.display = 'none';
 			this.actionRow_edit.style.display = 'none';
 			this.actionRow_view.style.display = null;
+			this.state.disabled = true;
+			this.group.disabled = true;
 			for (const input of this.commonInputs) {
-				input.disabled = true;
+				input.readOnly = true;
 			}
 		}
 
@@ -742,6 +746,7 @@
 					let shipmentTable = new ShipmentTable();
 					shipmentTable.setView();
 					addOnOrderIdEnterEvent(shipmentTable);
+					addFieldCopyEvents(shipmentTable);
 					linkShipmentTableActionButtons(shipmentTable);
 					shipmentTable.fromJson(shipment);
 					createdShipmentTables[shipmentTable.shipmentId.value] = shipmentTable;
@@ -750,8 +755,7 @@
 			}
 			loadingLabel.hidden = true;
 			toggleLoadingButtons(true);
-		},
-			selectedGroup);
+		}, selectedGroup);
 	}
 
 	function onNewShipmentButtonClick() {
@@ -761,6 +765,7 @@
 		shipmentTable.deliveryCountry.value = "РФ";
 		shipmentTable.setNew();
 		addOnOrderIdEnterEvent(shipmentTable);
+		addFieldCopyEvents(shipmentTable);
 		linkShipmentTableActionButtons(shipmentTable);
 		shipmentTable.nestElements(createdShipmentArea);
 	}
@@ -784,6 +789,22 @@
 			shipmentTable.updateMoyskladData(newData);
 			shipmentTable.orderIds.disabled = false;
 		});
+	}
+
+	function addFieldCopyEvents(shipmentTable) {
+		addFieldCopyEvent(shipmentTable, shipmentTable.shipmentId);
+		for (const input of shipmentTable.commonInputs) {
+			addFieldCopyEvent(shipmentTable, input);
+		}
+	}
+
+	function addFieldCopyEvent(shipmentTable, input) {
+		input.onclick = (event) => {
+			if (shipmentTable.tableState !== ShipmentTableState.VIEWING) return;
+			if (input.value) {
+				navigator.clipboard.writeText(input.value);
+			}
+		};
 	}
 
 	function linkShipmentTableActionButtons(shipmentTable) {
