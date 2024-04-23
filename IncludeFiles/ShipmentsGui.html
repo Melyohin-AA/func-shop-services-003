@@ -449,6 +449,7 @@
 			if (data.customerOrder != null) {
 				this.shippingCompany.value = data.customerOrder.shippingCompany;
 			}
+			this.sanitizePhoneNumbers();
 			this.recolorToMatchState();
 		}
 
@@ -490,11 +491,8 @@
 			if (this.tableState != ShipmentTableState.CREATION && this.tableState != ShipmentTableState.EDITING) {
 				return;
 			}
-			console.log("sanpre", this.toJson());
 			this.receiverPhone.value = this.receiverPhone.value.replace("+", "");
 			this.customerPhone.value = this.customerPhone.value.replace("+", "");
-			console.log(this.toJson());
-			console.log("sanpost", this.toJson());
 		}
 
 		undoChanges() {
