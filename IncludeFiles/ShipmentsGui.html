@@ -105,6 +105,8 @@
 	<hr />
 	<div id='newShipmentArea'>
 		<button id='newShipmentButton' onclick='onNewShipmentButtonClick()'>Добавить отправку</button>
+		<input id='newShipmentOrderId' type='text' placeholder='N заказа'
+			onkeyup='if (event.keyCode == 13) onNewShipmentButtonClick()' />
 	</div>
 
 	<datalist id='shippingCompanyDatalist'>
@@ -764,6 +766,11 @@
 		shipmentTable.group.selectedIndex = 1;
 		shipmentTable.deliveryCountry.value = "РФ";
 		shipmentTable.setNew();
+		if (newShipmentOrderId.value) {
+			shipmentTable.orderIds.value = newShipmentOrderId.value;
+			newShipmentOrderId.value = null;
+			onOrderIdEnter(shipmentTable);
+		}
 		addOnOrderIdEnterEvent(shipmentTable);
 		addFieldCopyEvents(shipmentTable);
 		linkShipmentTableActionButtons(shipmentTable);
