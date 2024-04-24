@@ -35,6 +35,11 @@
 			background-color: gold;
 		}
 
+		.table-title {
+			font-size: smaller;
+			color: blue;
+		}
+
 		.outer-table {
 			border-collapse: collapse;
 		}
@@ -206,87 +211,98 @@
 			this.oldSelectClasses = [];
 			this.commonInputs = [];
 			this.main = this.newOuterTable();
-			let rowHeader = this.main.insertRow(-1);
-			let row0 = this.main.insertRow(-1);
-			let cell00 = row0.insertCell(-1);
-			let innerTable00 = this.newInnerTable(cell00);
-
-			let cell0_00 = innerTable00.insertRow(-1).insertCell(-1);
-			cell0_00.innerText = "Получатель";
-			let cell1_00 = innerTable00.insertRow(-1).insertCell(-1);
-			this.receiverName = this.newInput(cell1_00, 'Получатель', 'text');
+			//layout
+			let mainRow = this.main.insertRow();
+			//layout - receiver
+			let mainCell_receiver = mainRow.insertCell();
+			let title_receiver = this.newPara(mainCell_receiver, "Получатель");
+			title_receiver.classList.toggle("table-title", true);
+			let receiver_table = this.newInnerTable(mainCell_receiver);
+			let receiver_row = receiver_table.insertRow();
+			let cell_receiver_left = receiver_row.insertCell();
+			let cell_receiverName = cell_receiver_left;
+			let cell_receiverPhone = cell_receiver_left;
+			let cell_receiver_right = receiver_row.insertCell();
+			let cell_country = cell_receiver_right;
+			let cell_deliveryCity = cell_receiver_right;
+			let cell_address = cell_receiver_right;
+			//layout - track
+			let mainCell_track = mainRow.insertCell();
+			let title_track = this.newPara(mainCell_track, "Трек");
+			title_track.classList.toggle("table-title", true);
+			let cell_shipmentId = mainCell_track;
+			let cell_shippingCompany = mainCell_track;
+			let cell_orderId = mainCell_track;
+			let cell_trackCode = mainCell_track;
+			let cell_comment0 = mainCell_track;
+			//layout - customer
+			let mainCell_customer = mainRow.insertCell();
+			let title_customer = this.newPara(mainCell_customer, "Трек");
+			title_customer.classList.toggle("table-title", true);
+			let cell_customerName = mainCell_customer;
+			let cell_customerPhone = mainCell_customer;
+			let cell_customerEmail = mainCell_customer;
+			//layout - comments & dropdowns
+			let mainCell_comments = mainRow.insertCell();
+			let comments_table = this.newInnerTable(mainCell_comments);
+			let comments_row = comments_table.insertRow();
+			let cell_comments_left = comments_row.insertCell();
+			let cell_comment1 = cell_comments_left;
+			let cell_comment2 = cell_comments_left;
+			let cell_comments_right = comments_row.insertCell();
+			let cell_status = cell_comments_right;
+			let cell_group = cell_comments_right;
+			let cell_comment3 = cell_comments_right;
+			
+			//inputs - receiver
+			this.receiverName = this.newTextarea(cell_receiverName, 'Получатель', 'text');
 			this.commonInputs.push(this.receiverName);
-			let cell2_00 = innerTable00.insertRow(-1).insertCell(-1);
-			this.receiverPhone = this.newInput(cell2_00, 'Телефон получателя', 'tel');
+			this.receiverPhone = this.newInput(cell_receiverPhone, 'Телефон получателя', 'tel');
 			this.commonInputs.push(this.receiverPhone);
-			let cell01 = row0.insertCell(-1);
-			this.deliveryCity = this.newInput(cell01, 'Город', 'text');
+			this.deliveryCountry = this.newInput(cell_country, 'Страна', 'text');
+			this.commonInputs.push(this.deliveryCountry);
+			this.deliveryCity = this.newInput(cell_deliveryCity, 'Город', 'text');
 			this.commonInputs.push(this.deliveryCity);
-			let cell02 = row0.insertCell(-1);
-			let innerTable02 = this.newInnerTable(cell02);
-			let cell0_02 = innerTable02.insertRow(-1).insertCell(-1);
-			this.shippingCompany = this.newInput(cell0_02, 'ТК', 'text');
+			this.deliveryAddress = this.newInput(cell_address, 'Адрес доставки', 'text');
+			this.commonInputs.push(this.deliveryAddress);
+			//state - track
+			this.shipmentId = this.newInput(cell_shipmentId, 'N отправки', 'text');
+			this.shipmentId.readOnly = true;
+			this.shippingCompany = this.newInput(cell_shippingCompany, 'ТК', 'text');
 			this.shippingCompany.setAttribute('list', 'shippingCompanyDatalist');
 			this.commonInputs.push(this.shippingCompany);
-			let cell1_02 = innerTable02.insertRow(-1).insertCell(-1);
-			this.comment0 = this.newInput(cell1_02, 'Коммент 0', 'text');
+			this.comment0 = this.newInput(cell_comment0, 'Коммент 0', 'text');
 			this.commonInputs.push(this.comment0);
-			let cell03 = row0.insertCell(-1);
-			this.orderIds = this.newInput(cell03, 'NN заказов', 'text');
+			this.orderIds = this.newInput(cell_orderId, 'NN заказов', 'text');
 			this.commonInputs.push(this.orderIds);
-			let cell04 = row0.insertCell(-1);
-			this.comment1 = this.newTextarea(cell04, 'Коммент 1', 'text');
+			this.trackCode = this.newInput(cell_trackCode, 'Трек-номер', 'text');
+			this.commonInputs.push(this.trackCode);
+			//state - customer
+			this.customerName = this.newInput(cell_customerName, 'Заказчик', 'text');
+			this.commonInputs.push(this.customerName);
+			this.customerPhone = this.newInput(cell_customerPhone, 'Телефон заказчика', 'tel');
+			this.commonInputs.push(this.customerPhone);
+			this.customerEmail = this.newInput(cell_customerEmail, 'e-mail заказчика', 'email');
+			this.commonInputs.push(this.customerEmail);
+			//inputs - comments
+			this.comment1 = this.newTextarea(cell_comment1, 'Коммент 1', 'text');
 			this.commonInputs.push(this.comment1);
-			let cell05 = row0.insertCell(-1);
-			this.comment3 = this.newTextarea(cell05, 'Коммент 3', 'text');
+			this.comment2 = this.newTextarea(cell_comment2, 'Коммент 2', 'text');
+			this.commonInputs.push(this.comment2);
+			this.comment3 = this.newTextarea(cell_comment3, 'Коммент 3', 'text');
 			this.commonInputs.push(this.comment3);
-			let row1 = this.main.insertRow(-1);
-			let cell10 = row1.insertCell(-1);
-			let innerTable10 = this.newInnerTable(cell10);
-			let cell0_10 = innerTable10.insertRow(-1).insertCell(-1);
-			this.shipmentId = this.newInput(cell0_10, 'N отправки', 'text');
-			this.shipmentId.readOnly = true;
-			let cell1_10 = innerTable10.insertRow(-1).insertCell(-1);
+			//state - dropdowns
 			this.state = this.newSelect(
-				cell1_10,
+				cell_status,
 				['--Статус--', 'ОЖИДАЕТ СБОРКУ', 'НА СБОРКЕ', 'СОБРАН', 'УПАКОВАН', 'ОТПРАВЛЕН'],
 				this.selectClassesStatus
 			);
-			let cell11 = row1.insertCell(-1);
-			let innerTable11 = this.newInnerTable(cell11);
-			let cell0_11 = innerTable11.insertRow(-1).insertCell(-1);
-			this.deliveryCountry = this.newInput(cell0_11, 'Страна', 'text');
-			this.commonInputs.push(this.deliveryCountry);
-			let cell1_11 = innerTable11.insertRow(-1).insertCell(-1);
-			this.deliveryAddress = this.newInput(cell1_11, 'Адрес доставки', 'text');
-			this.commonInputs.push(this.deliveryAddress);
-			let cell12 = row1.insertCell(-1);
-			this.trackCode = this.newInput(cell12, 'Трек-номер', 'text');
-			this.commonInputs.push(this.trackCode);
-			let cell13 = row1.insertCell(-1);
-			let innerTable13 = this.newInnerTable(cell13);
-			let cell0_13 = innerTable13.insertRow(-1).insertCell(-1);
-			cell0_13.innerText = "Заказчик";
-			let cell1_13 = innerTable13.insertRow(-1).insertCell(-1);
-			this.customerName = this.newInput(cell1_13, 'Заказчик', 'text');
-			this.commonInputs.push(this.customerName);
-			let cell2_13 = innerTable13.insertRow(-1).insertCell(-1);
-			this.customerPhone = this.newInput(cell2_13, 'Телефон заказчика', 'tel');
-			this.commonInputs.push(this.customerPhone);
-			let cell3_13 = innerTable13.insertRow(-1).insertCell(-1);
-			this.customerEmail = this.newInput(cell3_13, 'e-mail заказчика', 'email');
-			this.commonInputs.push(this.customerEmail);
-			let cell14 = row1.insertCell(-1);
-			this.comment2 = this.newTextarea(cell14, 'Коммент 2', 'text');
-			this.commonInputs.push(this.comment2);
-			let cell15 = row1.insertCell(-1);
-			let innerTable15 = this.newInnerTable(cell15);
-			let cell0_15 = innerTable15.insertRow(-1).insertCell(-1);
 			this.group = this.newSelect(
-				cell0_15,
+				cell_group,
 				['--Группа--', 'В РАБОТЕ', 'КРАСНАЯ', 'ПОЧТА', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО'],
 				null
 			);
+			//rest
 			this.initActionRows();
 			this.moyskladDataTable = this.newOuterTable();
 			this.moyskladData = null;
@@ -319,6 +335,13 @@
 			this.actionButtons.push(this.editButton);
 			this.deleteButton = this.newButton(this.actionRow_view.insertCell(-1), 'Удалить');
 			this.actionButtons.push(this.deleteButton);
+		}
+
+		newPara(hostCell, text) {
+			let para = document.createElement('para');
+			para.textContent = text;
+			hostCell.appendChild(para);
+			return para;
 		}
 
 		newOuterTable() {
