@@ -44,6 +44,10 @@
 			border-collapse: collapse;
 		}
 
+		.outer-table ::placeholder {
+			color: rgb(179, 179, 179);
+		}
+
 		.outer-table td {
 			border: 1px solid black;
 		}
@@ -215,8 +219,6 @@
 			let mainRow = this.main.insertRow();
 			//layout - receiver
 			let mainCell_receiver = mainRow.insertCell();
-			let title_receiver = this.newPara(mainCell_receiver, "Получатель");
-			title_receiver.classList.toggle("table-title", true);
 			let receiver_table = this.newInnerTable(mainCell_receiver);
 			let receiver_row = receiver_table.insertRow();
 			let cell_receiver_left = receiver_row.insertCell();
@@ -228,17 +230,13 @@
 			let cell_address = cell_receiver_right;
 			//layout - track
 			let mainCell_track = mainRow.insertCell();
-			let title_track = this.newPara(mainCell_track, "Трек");
-			title_track.classList.toggle("table-title", true);
 			let cell_shipmentId = mainCell_track;
 			let cell_shippingCompany = mainCell_track;
-			let cell_orderId = mainCell_track;
 			let cell_trackCode = mainCell_track;
 			let cell_comment0 = mainCell_track;
 			//layout - customer
 			let mainCell_customer = mainRow.insertCell();
-			let title_customer = this.newPara(mainCell_customer, "Заказчик");
-			title_customer.classList.toggle("table-title", true);
+			let cell_orderId = mainCell_customer;
 			let cell_customerName = mainCell_customer;
 			let cell_customerPhone = mainCell_customer;
 			let cell_customerEmail = mainCell_customer;
@@ -253,8 +251,10 @@
 			let cell_status = cell_comments_right;
 			let cell_group = cell_comments_right;
 			let cell_comment3 = cell_comments_right;
-			
+
 			//inputs - receiver
+			let title_receiver = this.newPara(cell_receiver_left, "Получатель");
+			title_receiver.classList.toggle("table-title", true);
 			this.receiverName = this.newTextarea(cell_receiverName, 'Получатель', 'text');
 			this.commonInputs.push(this.receiverName);
 			this.receiverPhone = this.newInput(cell_receiverPhone, 'Телефон получателя', 'tel');
@@ -273,11 +273,16 @@
 			this.commonInputs.push(this.shippingCompany);
 			this.comment0 = this.newInput(cell_comment0, 'Коммент 0', 'text');
 			this.commonInputs.push(this.comment0);
-			this.orderIds = this.newInput(cell_orderId, 'NN заказов', 'text');
-			this.commonInputs.push(this.orderIds);
+
+			let title_track = this.newPara(mainCell_track, "Трек");
+			title_track.classList.toggle("table-title", true);
 			this.trackCode = this.newInput(cell_trackCode, 'Трек-номер', 'text');
 			this.commonInputs.push(this.trackCode);
-			//state - customer
+			//inputs - customer
+			this.orderIds = this.newInput(cell_orderId, 'NN заказов', 'text');
+			this.commonInputs.push(this.orderIds);
+			let title_customer = this.newPara(mainCell_customer, "Заказчик");
+			title_customer.classList.toggle("table-title", true);
 			this.customerName = this.newInput(cell_customerName, 'Заказчик', 'text');
 			this.commonInputs.push(this.customerName);
 			this.customerPhone = this.newInput(cell_customerPhone, 'Телефон заказчика', 'tel');
