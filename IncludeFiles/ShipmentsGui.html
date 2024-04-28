@@ -281,8 +281,8 @@
 				null
 			);
 			this.commonInputs.push(this.group);
-			this.receiverPhone.onblur = () => this.sanitizePhoneNumbers();
-			this.customerPhone.onblur = () => this.sanitizePhoneNumbers();
+			this.receiverPhone.onblur = () => this.sanitizePhoneNumber(this.receiverPhone);
+			this.customerPhone.onblur = () => this.sanitizePhoneNumber(this.customerPhone);
 			this.initActionRows();
 			this.moyskladDataTable = this.newOuterTable();
 			this.moyskladData = null;
@@ -449,7 +449,8 @@
 			if (data.customerOrder != null) {
 				this.shippingCompany.value = data.customerOrder.shippingCompany;
 			}
-			this.sanitizePhoneNumbers();
+			this.sanitizePhoneNumber(this.customerPhone);
+			this.sanitizePhoneNumber(this.receiverPhone);
 			this.recolorToMatchState();
 		}
 
@@ -487,12 +488,11 @@
 			this.oldSelectClasses = [statusClass];
 		}
 
-		sanitizePhoneNumbers() {
+		sanitizePhoneNumber(numberElement) {
 			if (this.tableState != ShipmentTableState.CREATION && this.tableState != ShipmentTableState.EDITING) {
 				return;
 			}
-			this.receiverPhone.value = this.receiverPhone.value.replace("+", "");
-			this.customerPhone.value = this.customerPhone.value.replace("+", "");
+			numberElement.value = numberElement.value.replace("+", "");
 		}
 
 		undoChanges() {
