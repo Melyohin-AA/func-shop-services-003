@@ -487,6 +487,7 @@
 				}
 				if (!this.receiverPhone.value) {
 					this.receiverPhone.value = data.customer.phone;
+					this.sanitizePhoneNumber(this.receiverPhone);
 				}
 				if (!this.customerName.value) {
 					this.customerName.value = data.customer.name;
@@ -496,6 +497,7 @@
 				}
 				if (!this.customerPhone.value) {
 					this.customerPhone.value = data.customer.phone;
+					this.sanitizePhoneNumber(this.customerPhone);
 				}
 			}
 			if (data.customerOrder != null) {
@@ -503,8 +505,6 @@
 					this.shippingCompany.value = data.customerOrder.shippingCompany;
 				}
 			}
-			this.sanitizePhoneNumber(this.customerPhone);
-			this.sanitizePhoneNumber(this.receiverPhone);
 			this.recolorToMatchState();
 		}
 
