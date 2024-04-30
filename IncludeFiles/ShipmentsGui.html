@@ -72,51 +72,68 @@
 		.inner-table td {
 			border-style: none;
 		}
+
+		.created-shipment-area {
+			margin-bottom: 90px;
+		}
+
+		.footer {
+			position: fixed;
+			bottom: 0;
+			width: 100%;
+			padding-bottom: 9px;
+			background-color: white;
+		}
 	</style>
 </head>
 
 <body>
-	<div id='grouptabswitcher'>
-		<table class="outer-table">
-			<tr>
-				<td>Группа:</td>
-				<td>
-					<button id="tab0">Все</button>
-				</td>
-				<td>
-					<button id='tab1'>В РАБОТЕ</button>
-				</td>
-				<td>
-					<button id='tab2'>КРАСНАЯ</button>
-				</td>
-				<td>
-					<button id='tab3'>ПОЧТА</button>
-				</td>
-				<td>
-					<button id='tab4'>ЗАКАЗЫ ИЗ НАЛИЧИЯ</button>
-				</td>
-				<td>
-					<button id='tab5'>ОЖИДАНИЕ</button>
-				</td>
-				<td>
-					<button id='tab6'>ДОЛГИЙ ЗАКАЗ</button>
-				</td>
-				<td>
-					<button id='tab7'>ВЫПОЛНЕНО</button>
-				</td>
-			</tr>
-		</table>
-		<!-- 'В РАБОТЕ', 'КРАСНАЯ', 'ПОЧТА', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО' -->
+	<div class="created-shipment-area">
+		<div id='createdShipmentArea'></div>
+		<p id='loadingLabel' hidden>Загрузка отправок...</p>
+		<p id='instructionLabel'>Выберите группу или нажмите "Обновить список отправок"</p>
 	</div>
-	<div id='createdShipmentArea'></div>
-	<p id='loadingLabel' hidden>Загрузка отправок...</p>
-	<p id='instructionLabel'>Выберите группу или нажмите "Обновить список отправок"</p>
-	<button id='createdShipmentLoadingButton' onclick='loadShipments()'>⟳ Обновить список отправок</button>
-	<hr />
-	<div id='newShipmentArea'>
-		<button id='newShipmentButton' onclick='onNewShipmentButtonClick()'>Добавить отправку</button>
-		<input id='newShipmentOrderId' type='text' placeholder='N заказа'
-			onkeyup='if (event.keyCode == 13) onNewShipmentButtonClick()' />
+
+	<div class="footer">
+		<hr />
+		<div id='newShipmentArea'>
+			<button id='newShipmentButton' onclick='onNewShipmentButtonClick()'>Добавить отправку</button>
+			<input id='newShipmentOrderId' type='text' placeholder='N заказа'
+				onkeyup='if (event.keyCode == 13) onNewShipmentButtonClick()' />
+		</div>
+		<button id='createdShipmentLoadingButton' onclick='loadShipments()'>⟳ Обновить список отправок</button>
+		<div id='grouptabswitcher'>
+			<table class="outer-table">
+				<tr>
+					<td>Группа:</td>
+					<td>
+						<button id="tab0">Все</button>
+					</td>
+					<td>
+						<button id='tab1'>В РАБОТЕ</button>
+					</td>
+					<td>
+						<button id='tab2'>КРАСНАЯ</button>
+					</td>
+					<td>
+						<button id='tab3'>ПОЧТА</button>
+					</td>
+					<td>
+						<button id='tab4'>ЗАКАЗЫ ИЗ НАЛИЧИЯ</button>
+					</td>
+					<td>
+						<button id='tab5'>ОЖИДАНИЕ</button>
+					</td>
+					<td>
+						<button id='tab6'>ДОЛГИЙ ЗАКАЗ</button>
+					</td>
+					<td>
+						<button id='tab7'>ВЫПОЛНЕНО</button>
+					</td>
+				</tr>
+			</table>
+			<!-- 'В РАБОТЕ', 'КРАСНАЯ', 'ПОЧТА', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО' -->
+		</div>
 	</div>
 
 	<datalist id='shippingCompanyDatalist'>
@@ -804,6 +821,7 @@
 		addFieldCopyEvents(shipmentTable);
 		linkShipmentTableActionButtons(shipmentTable);
 		shipmentTable.nestElements(createdShipmentArea);
+		window.scrollTo(0, document.body.scrollHeight);
 	}
 
 	function addOnOrderIdEnterEvent(shipmentTable) {
