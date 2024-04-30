@@ -325,6 +325,9 @@
 				['--Группа--', 'В РАБОТЕ', 'КРАСНАЯ', 'ПОЧТА', 'ЗАКАЗЫ ИЗ НАЛИЧИЯ', 'ОЖИДАНИЕ', 'ДОЛГИЙ ЗАКАЗ', 'ВЫПОЛНЕНО'],
 				null
 			);
+			this.commonInputs.push(this.group);
+			this.receiverPhone.onblur = () => this.sanitizePhoneNumber(this.receiverPhone);
+			this.customerPhone.onblur = () => this.sanitizePhoneNumber(this.customerPhone);
 			//rest
 			this.initActionRows();
 			this.moyskladDataTable = this.newOuterTable();
@@ -501,6 +504,7 @@
 				}
 				if (!this.receiverPhone.value) {
 					this.receiverPhone.value = data.customer.phone;
+					this.sanitizePhoneNumber(this.receiverPhone);
 				}
 				if (!this.customerName.value) {
 					this.customerName.value = data.customer.name;
@@ -510,6 +514,7 @@
 				}
 				if (!this.customerPhone.value) {
 					this.customerPhone.value = data.customer.phone;
+					this.sanitizePhoneNumber(this.customerPhone);
 				}
 			}
 			if (data.customerOrder != null) {
@@ -554,6 +559,13 @@
 			this.oldSelectClasses = [statusClass];
 		}
 
+		sanitizePhoneNumber(numberElement) {
+			if (this.tableState != ShipmentTableState.CREATION && this.tableState != ShipmentTableState.EDITING) {
+				return;
+			}
+			numberElement.value = numberElement.value.replace("+", "");
+		}
+
 		undoChanges() {
 			if (this.unchanged != null) {
 				this.fromJson(this.unchanged);
@@ -580,7 +592,7 @@
 				comments: [this.comment0.value, this.comment1.value, this.comment2.value, this.comment3.value],
 				moyskladData: this.moyskladData,
 				lastModTS: this.lastModTS,
-			}
+			};
 		}
 
 		fromJson(jobj) {
@@ -671,7 +683,6 @@
 			let url = `${SHIPMENTS_API_PATH}?${query}`;
 			let shId = this.shipmentId.value;
 			let body = JSON.stringify(this.toJson());
-			console.log(body);
 			fetch(url, { method: 'PUT', body: body }).then((response) => {
 				console.log(`Putting shipment '${shId}':`, response);
 				if (response.status == 200) {

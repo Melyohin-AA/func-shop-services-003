@@ -18,7 +18,7 @@ internal static class ShopStoringShipmentsApiTrigger
 	public const string Route = "api/shop/storing/shipments";
 
 	[FunctionName(nameof(ShopStoringShipmentsApiTrigger))]
-	public static Task<IActionResult> Run(
+	public static async Task<IActionResult> Run(
 		[HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", "put", "delete", Route = Route)] HttpRequest request,
 		ILogger logger)
 	{
@@ -27,15 +27,15 @@ internal static class ShopStoringShipmentsApiTrigger
 			if (!Authorization.SimpleAccess.Check(request))
 			{
 				logger.LogInformation("Failed to auth");
-				return Task.FromResult<IActionResult>(new UnauthorizedResult());
+				return new UnauthorizedResult();
 			}
 			string deviceId = Authorization.DeviceIdentity.GetDeviceId(request);
 			if (string.IsNullOrEmpty(deviceId))
-				return Task.FromResult<IActionResult>(new BadRequestObjectResult(
-					$"'{Authorization.DeviceIdentity.DeviceIdHeader}' header/cookie is required"));
+				return new BadRequestObjectResult(
+					$"'{Authorization.DeviceIdentity.DeviceIdHeader}' header/cookie is required");
 			string partition = request.Query["partition"];
 			if (string.IsNullOrEmpty(partition))
-				return Task.FromResult<IActionResult>(new BadRequestObjectResult("'partition' parameter is required"));
+				return new BadRequestObjectResult("'partition' parameter is required");
 			bool getAll = false;
 			string shipmentId = null;
 			string continuationToken = null;
@@ -45,7 +45,7 @@ internal static class ShopStoringShipmentsApiTrigger
 			if ((request.Method == "POST") || (request.Method == "PUT"))
 			{
 				using (var bodyReader = new StreamReader(request.Body, Encoding.UTF8))
-					data = bodyReader.ReadToEnd();
+					data = await bodyReader.ReadToEndAsync();
 				if (request.Method == "PUT")
 					releaseModLock = request.Query["release_lock"] == "true";
 
@@ -66,7 +66,7 @@ internal static class ShopStoringShipmentsApiTrigger
 				{
 					shipmentId = request.Query["id"];
 					if (string.IsNullOrEmpty(shipmentId))
-						return Task.FromResult<IActionResult>(new BadRequestObjectResult("'id' parameter is required"));
+						return new BadRequestObjectResult("'id' parameter is required");
 				}
 			}
 			var storage = new Storage(partition, deviceId, logger);
@@ -75,29 +75,29 @@ internal static class ShopStoringShipmentsApiTrigger
 			{
 				case "GET":
 					return getAll ?
-						ProcessGetAll(storage, continuationToken, group) :
-						ProcessGet(storage, shipmentId);
+						await ProcessGetAll(storage, continuationToken, group) :
+						await ProcessGet(storage, shipmentId);
 				case "POST":
-					return ProcessPost(storage, logger, data);
+					return await ProcessPost(storage, logger, data);
 				case "PUT":
-					return ProcessPut(storage, logger, data, releaseModLock);
+					return await ProcessPut(storage, logger, data, releaseModLock);
 				case "DELETE":
-					return ProcessDelete(storage, shipmentId);
+					return await ProcessDelete(storage, shipmentId);
 			}
-			return Task.FromResult<IActionResult>(new ContentResult()
+			return new ContentResult()
 			{
 				StatusCode = 500,
 				Content = $"Method '{request.Method}' is not actually supported",
-			});
+			};
 		}
 		catch (Exception ex)
 		{
 			logger.LogError(ex.ToString());
-			return Task.FromResult<IActionResult>(new ContentResult()
+			return new ContentResult()
 			{
 				StatusCode = 500,
 				Content = ex.Message,
-			});
+			};
 		}
 	}
 
