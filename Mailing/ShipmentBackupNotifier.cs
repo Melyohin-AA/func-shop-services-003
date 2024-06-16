@@ -7,7 +7,8 @@ namespace ShopServices.Mailing;
 
 internal class ShipmentBackupNotifier
 {
-	private static readonly string addressToSendNotificationsTo = Environment.GetEnvironmentVariable("SHOPSERVICES_BACKUPS_MAIL");
+	private static readonly string addressToSendNotificationsTo =
+		Environment.GetEnvironmentVariable("SHOPSERVICES_BACKUPS_MAIL");
 
 	private readonly ILogger logger;
 	private readonly EmailSender email;
@@ -31,16 +32,17 @@ internal class ShipmentBackupNotifier
 		DateTime now = DateTime.UtcNow;
 		if (email is null)
 		{
-			logger.LogError($"Cannot send notification for {notificationReason}, {shipment.Id}: Notifier not initialized");
+			logger.LogError(
+				$"Cannot send notification for {notificationReason}, {shipment.Id}: Notifier not initialized");
 			return;
 		}
 		EmailTextBuilder textBuilder = new();
-		textBuilder
-			.AppendLine($"This is a notification for: {notificationReason}")
-			.AppendTableStart()
-			.AppendShipmentTableHeader()
-			.AppendShipmentRecord(shipment)
-			.AppendTableEnd();
+		textBuilder.
+			AppendLine($"This is a notification for: {notificationReason}").
+			AppendTableStart().
+			AppendShipmentTableHeader().
+			AppendShipmentRecord(shipment).
+			AppendTableEnd();
 		await email.SendSingleAsync(
 			addressToSendNotificationsTo,
 			$"{now:yymmdd-hhmmss}-{now.Millisecond}_{StringifyReasonForTopic(notificationReason)}_{shipment.Id}",
@@ -61,14 +63,12 @@ internal class ShipmentBackupNotifier
 			return;
 		}
 		EmailTextBuilder textBuilder = new();
-		textBuilder
-			.AppendLine($"This is a notification for: {notificationReason}")
-			.AppendTableStart()
-			.AppendShipmentTableHeader();
+		textBuilder.
+			AppendLine($"This is a notification for: {notificationReason}").
+			AppendTableStart().
+			AppendShipmentTableHeader();
 		foreach (Shop.Storing.Models.Shipment shipment in shipments)
-		{
 			textBuilder.AppendShipmentRecord(shipment);
-		}
 		textBuilder.AppendTableEnd();
 		await email.SendSingleAsync(
 			addressToSendNotificationsTo,
@@ -79,14 +79,14 @@ internal class ShipmentBackupNotifier
 		);
 	}
 
-	private static string StringifyReasonForTopic(NotificationReason reason) => reason switch
-	{
-		NotificationReason.ShipmentCreated => "new",
-		NotificationReason.ShipmentUpdated => "upd",
-		NotificationReason.ShipmentDeleted => "del",
-		NotificationReason.ShipmentBackupHourly => "hourly",
-		NotificationReason.ShipmentBackupDaily => "daily",
-		NotificationReason.ShipmentBackupWeekly => "weekly",
-		_ => ((int)reason).ToString()
-	};
+	private static string StringifyReasonForTopic(NotificationReason reason) =>
+		reason switch {
+			NotificationReason.ShipmentCreated => "new",
+			NotificationReason.ShipmentUpdated => "upd",
+			NotificationReason.ShipmentDeleted => "del",
+			NotificationReason.ShipmentBackupHourly => "hourly",
+			NotificationReason.ShipmentBackupDaily => "daily",
+			NotificationReason.ShipmentBackupWeekly => "weekly",
+			_ => ((int)reason).ToString()
+		};
 }

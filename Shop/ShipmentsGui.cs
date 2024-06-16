@@ -8,10 +8,9 @@ internal static class ShipmentsGui
 	public static async System.Threading.Tasks.Task<IActionResult> Get()
 	{
 		var content = ShopServices.IncludedFiles.ResourceAsSring("ShipmentsGui.html");
-		return new ContentResult()
-		{
+		return new ContentResult() {
 			Content = await content,
-			ContentType = "text/html; charset=utf-8"
+			ContentType = "text/html; charset=utf-8",
 		};
 	}
 }

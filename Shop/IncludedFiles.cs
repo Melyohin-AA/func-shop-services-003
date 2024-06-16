@@ -5,12 +5,10 @@ namespace ShopServices;
 /// </summary>
 public static class IncludedFiles
 {
-	
 	public static async System.Threading.Tasks.Task<string> ResourceAsSring(
 		string resourceName,
 		System.Text.Encoding specifyEncoding = null)
 	{
-		
 		System.Reflection.Assembly asm = System.Reflection.Assembly.GetExecutingAssembly();
 		using (var stream = asm.GetManifestResourceStream($"func.IncludeFiles.{resourceName}"))
 		{

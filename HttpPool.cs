@@ -6,9 +6,14 @@ using System.Threading.Tasks;
 
 namespace ShopServices;
 
+/*
+For some reason `SocketsHttpHandler.MaxConnectionsPerServer` does not allow concurrent requests in Azure Function App.
+Thus we use `HttpPool` to allocate one `HttpClient` per request.
+*/
+
 internal static class HttpPool
 {
-	public const byte Limit = 16;
+	public const byte Limit = 64;
 
 	private static readonly Dictionary<HttpClient, bool> pool = new Dictionary<HttpClient, bool>();
 	private static readonly SemaphoreSlim sema = new SemaphoreSlim(Limit);

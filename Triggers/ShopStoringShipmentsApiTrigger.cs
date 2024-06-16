@@ -48,17 +48,13 @@ internal static class ShopStoringShipmentsApiTrigger
 					data = await bodyReader.ReadToEndAsync();
 				if (request.Method == "PUT")
 					releaseModLock = request.Query["release_lock"] == "true";
-
 			}
 			else
 			{
 				if (
-					request.Query.TryGetValue("group", out Microsoft.Extensions.Primitives.StringValues values)
-					&& values.Count > 0
-					&& int.TryParse(values, out int parsedResult))
-				{
-					group = parsedResult;
-				}
+					request.Query.TryGetValue("group", out Microsoft.Extensions.Primitives.StringValues values) &&
+					(values.Count > 0) && int.TryParse(values, out int parsedResult)
+				) group = parsedResult;
 				getAll = request.Query["all"] == "true";
 				if (getAll)
 					continuationToken = request.Query["page"];
@@ -84,8 +80,7 @@ internal static class ShopStoringShipmentsApiTrigger
 				case "DELETE":
 					return await ProcessDelete(storage, shipmentId);
 			}
-			return new ContentResult()
-			{
+			return new ContentResult() {
 				StatusCode = 500,
 				Content = $"Method '{request.Method}' is not actually supported",
 			};
@@ -93,8 +88,7 @@ internal static class ShopStoringShipmentsApiTrigger
 		catch (Exception ex)
 		{
 			logger.LogError(ex.ToString());
-			return new ContentResult()
-			{
+			return new ContentResult() {
 				StatusCode = 500,
 				Content = ex.Message,
 			};

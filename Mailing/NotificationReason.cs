@@ -7,6 +7,5 @@ internal enum NotificationReason
 	ShipmentDeleted,
 	ShipmentBackupHourly,
 	ShipmentBackupDaily,
-	ShipmentBackupWeekly
-
+	ShipmentBackupWeekly,
 }
